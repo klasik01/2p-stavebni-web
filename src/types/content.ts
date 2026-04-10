@@ -55,6 +55,7 @@ export type AboutContent = {
 export type ProjectImage = {
   src: string;
   alt: string;
+  storagePath?: string;
 };
 
 export type Project = {
@@ -145,4 +146,9 @@ export type SiteContent = {
   promotions: {
     items: Promotion[];
   };
+};
+
+export type ManagedContent = {
+  projects: Project[];
+  promotions: Promotion[];
 };

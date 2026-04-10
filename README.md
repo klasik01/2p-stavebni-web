@@ -9,6 +9,8 @@ npm install
 npm run dev
 ```
 
+Pro lokalni beh si vytvor `.env` podle `.env.example`.
+
 ## Build
 
 ```bash
@@ -27,7 +29,18 @@ Pro zprovozneni na GitHubu je potreba:
 
 1. V repozitari otevrit `Settings > Pages`
 2. V sekci `Build and deployment` nechat `Source: GitHub Actions`
-3. Pushnout zmeny do vetve `main`
+3. V `Settings > Secrets and variables > Actions` pridat tyto secrets:
+4. Pushnout zmeny do vetve `main`
+
+```text
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_DATABASE_URL
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+```
 
 Typicky postup:
 
@@ -45,6 +58,36 @@ git push -u origin main
 - Popup akce: `src/content/siteContent.ts` v sekci `promotions.items`
 - Vzhled a layout: `src/styles.css`
 - Komponenty: `src/components/`
+
+## Admin stranka
+
+- Admin je dostupny na `#/admin`
+- Docasne prihlaseni je `admin / admin`
+- Admin stranka nastavuje `noindex, nofollow`
+- Projekty a promo akce se z administrace ukladaji do Firebase Realtime Database
+- `localStorage` slouzi jen jako zalozni fallback posledniho nacteneho obsahu
+
+Obsah je tim padem sdileny mezi zarizenimi, ale prihlaseni je zatim stale docasne resene jako `admin / admin`.
+
+## Firebase config
+
+Firebase konfigurace uz neni natvrdo v kodu. Aplikace ji bere z `VITE_` env promennych:
+
+```bash
+cp .env.example .env
+```
+
+a potom do `.env` dopln:
+
+```bash
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_DATABASE_URL=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
 
 ## Jak pridat projekt
 

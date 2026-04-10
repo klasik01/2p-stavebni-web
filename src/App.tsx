@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AdminPage } from "./components/AdminPage";
 import { AboutSection } from "./components/AboutSection";
 import { ContactSection } from "./components/ContactSection";
 import { DiarySection } from "./components/DiarySection";
@@ -12,25 +13,71 @@ import { ServicesSection } from "./components/ServicesSection";
 import { TrustBar } from "./components/TrustBar";
 import { siteContent } from "./content/siteContent";
 import type { Project } from "./types/content";
+import {
+  ADMIN_ROUTE,
+  ADMIN_PROJECTS_ROUTE,
+  ADMIN_PROMOTIONS_ROUTE,
+  loadManagedContent,
+  loadManagedContentFromFirebase,
+} from "./utils/contentStorage";
 
 function App() {
+  const [content, setContent] = useState(() => loadManagedContent(siteContent));
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [route, setRoute] = useState(() => window.location.hash || "#uvod");
+  const [isContentLoading, setIsContentLoading] = useState(true);
+  const isAdminRoute = route.startsWith(ADMIN_ROUTE);
+  const adminSection = route.startsWith(ADMIN_PROMOTIONS_ROUTE)
+    ? "promotions"
+    : "projects";
+
   const activePromotions = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
 
-    return siteContent.promotions.items.filter((promotion) => {
+    return content.promotions.items.filter((promotion) => {
       if (!promotion.enabled) return false;
       if (promotion.startsAt && today < promotion.startsAt) return false;
       if (promotion.endsAt && today > promotion.endsAt) return false;
       return true;
     });
+  }, [content.promotions.items]);
+
+  useEffect(() => {
+    const onHashChange = () => setRoute(window.location.hash || "#uvod");
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   useEffect(() => {
-    document.title = siteContent.seo.title;
+    let active = true;
+
+    loadManagedContentFromFirebase(siteContent).then((resolvedContent) => {
+      if (!active) return;
+      setContent(resolvedContent);
+      setIsContentLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
+    document.title = isAdminRoute ? "Administrace | 2P Stavební" : content.seo.title;
+
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+
+    robots.setAttribute("content", isAdminRoute ? "noindex, nofollow" : "index, follow");
+  }, [content.seo.title, isAdminRoute]);
+
+  useEffect(() => {
+    if (isAdminRoute) return;
+
     const reveals = document.querySelectorAll<HTMLElement>(".reveal");
 
     const observer = new IntersectionObserver(
@@ -50,24 +97,49 @@ function App() {
 
     reveals.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, []);
+  }, [content, isAdminRoute]);
+
+  if (isAdminRoute) {
+    return (
+      <AdminPage
+        content={content}
+        defaultContent={siteContent}
+        onContentChange={setContent}
+        currentSection={adminSection}
+      />
+    );
+  }
+
+  if (isContentLoading) {
+    return (
+      <main className="admin-shell">
+        <section className="admin-login">
+          <div className="admin-login-card">
+            <span className="section-label">Načítání obsahu</span>
+            <h1>Načítám data z Firebase</h1>
+            <p>Jakmile budou data připravená, zobrazí se veřejný web i administrace.</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <>
-      <Navbar companyName={siteContent.company.name} navigation={siteContent.navigation} />
+      <Navbar companyName={content.company.name} navigation={content.navigation} />
       <main>
-        <HeroSection content={siteContent.hero} />
-        <TrustBar items={siteContent.trustBar} />
-        <ServicesSection content={siteContent.services} />
-        <AboutSection content={siteContent.about} />
+        <HeroSection content={content.hero} />
+        <TrustBar items={content.trustBar} />
+        <ServicesSection content={content.services} />
+        <AboutSection content={content.about} />
         <ProjectsSection
-          content={siteContent.projects}
+          content={content.projects}
           onProjectOpen={setSelectedProject}
         />
-        <DiarySection content={siteContent.diary} />
-        <ContactSection content={siteContent.contact} />
+        <DiarySection content={content.diary} />
+        <ContactSection content={content.contact} />
       </main>
-      <Footer content={siteContent.footer} navigation={siteContent.navigation} />
+      <Footer content={content.footer} navigation={content.navigation} />
       <ProjectModal
         project={selectedProject}
         onClose={() => setSelectedProject(null)}
