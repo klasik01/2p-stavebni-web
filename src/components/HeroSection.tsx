@@ -1,0 +1,109 @@
+import { useEffect, useRef, useState } from "react";
+import type { HeroContent } from "../types/content";
+import { Icon } from "./Icon";
+
+type HeroSectionProps = {
+  content: HeroContent;
+};
+
+function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+
+    let frame = 0;
+    let animationFrame = 0;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+
+        const totalFrames = 100;
+        const step = () => {
+          frame += 1;
+          const progress = Math.min(frame / totalFrames, 1);
+          setCount(Math.floor(value * progress));
+          if (progress < 1) {
+            animationFrame = window.requestAnimationFrame(step);
+          }
+        };
+
+        animationFrame = window.requestAnimationFrame(step);
+        observer.disconnect();
+      },
+      { threshold: 0.6 },
+    );
+
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [value]);
+
+  return (
+    <div className="hero-stat-num" ref={ref}>
+      {count}
+      {count >= value ? suffix : ""}
+    </div>
+  );
+}
+
+export function HeroSection({ content }: HeroSectionProps) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLoaded(true), 100);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return (
+    <section className="hero" id="uvod">
+      <div
+        className={`hero-bg ${loaded ? "loaded" : ""}`}
+        style={{ backgroundImage: `url('${content.backgroundImage}')` }}
+      />
+      <div className="hero-overlay" />
+      <div className="hero-accent" />
+      <div className="container">
+        <div className="hero-content">
+          <div className="hero-eyebrow">
+            <div className="hero-eyebrow-line" />
+            <span>{content.eyebrow}</span>
+          </div>
+          <h1>
+            {content.title}
+            <br />
+            <em>{content.titleAccent}</em>
+          </h1>
+          <p className="hero-desc">{content.description}</p>
+          <div className="hero-actions">
+            <a href={content.primaryAction.href} className="btn btn-primary">
+              <Icon name="grid" size={18} />
+              {content.primaryAction.label}
+            </a>
+            <a href={content.secondaryAction.href} className="btn btn-outline">
+              <Icon name="phone" size={18} />
+              {content.secondaryAction.label}
+            </a>
+          </div>
+          <div className="hero-stats">
+            {content.stats.map((stat) => (
+              <div key={stat.label}>
+                <Counter value={stat.value} suffix={stat.suffix} />
+                <div className="hero-stat-label">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="hero-scroll">
+        <span>Scroll</span>
+        <Icon name="scroll" size={20} />
+      </div>
+    </section>
+  );
+}
