@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { useEffect, useMemo, useState } from "react";
+import { auth } from "../lib/firebase";
 import type { ManagedContent, Project, Promotion, SiteContent } from "../types/content";
 import {
   ADMIN_ROUTE,
   ADMIN_PROJECTS_ROUTE,
   ADMIN_PROMOTIONS_ROUTE,
   clearManagedContent,
-  isAdminSessionActive,
   saveManagedContentToFirebase,
-  setAdminSession,
 } from "../utils/contentStorage";
 import { removeProjectImage, uploadProjectImage } from "../utils/storage";
 import { Icon } from "./Icon";
@@ -68,11 +68,13 @@ export function AdminPage({
   onContentChange,
   currentSection,
 }: AdminPageProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(isAdminSessionActive());
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [draft, setDraft] = useState<ManagedContent>(() => cloneManagedContent(content));
   const [openProjects, setOpenProjects] = useState<string[]>([]);
   const [openPromotions, setOpenPromotions] = useState<string[]>([]);
@@ -82,6 +84,15 @@ export function AdminPage({
   const hasChanges = useMemo(() => {
     return JSON.stringify(draft) !== JSON.stringify(cloneManagedContent(content));
   }, [content, draft]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(Boolean(user));
+      setIsAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const saveDraft = async () => {
     setIsSaving(true);
@@ -135,6 +146,20 @@ export function AdminPage({
     );
   };
 
+  if (isAuthLoading) {
+    return (
+      <main className="admin-shell">
+        <section className="admin-login">
+          <div className="admin-login-card">
+            <span className="section-label">Ověření přihlášení</span>
+            <h1>Načítám administraci</h1>
+            <p>Ověřuji přihlášení přes Firebase Auth.</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <main className="admin-shell">
@@ -143,36 +168,34 @@ export function AdminPage({
             <span className="section-label">Neveřejná správa</span>
             <h1>Administrace obsahu</h1>
             <p>
-              Tato stránka je určená pro interní správu projektů a promo akcí. Prozatím je
-              přihlášení nastavené pouze dočasně.
+              Tato stránka je určená pro interní správu projektů a promo akcí. Přihlášení je
+              ověřované přes Firebase Auth.
             </p>
             <form
               className="admin-login-form"
-              onSubmit={(event) => {
+              onSubmit={async (event) => {
                 event.preventDefault();
+                setError("");
+                setIsLoggingIn(true);
 
-                if (
-                  credentials.username === "admin" &&
-                  credentials.password === "admin"
-                ) {
-                  setAdminSession(true);
-                  setIsAuthenticated(true);
-                  setError("");
-                  return;
+                try {
+                  await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+                } catch {
+                  setError("Přihlášení se nepodařilo. Zkontroluj email, heslo a Firebase Auth.");
+                } finally {
+                  setIsLoggingIn(false);
                 }
-
-                setError("Neplatné přihlášení. Zatím funguje pouze admin / admin.");
               }}
             >
               <label>
-                Uživatelské jméno
+                Email
                 <input
-                  type="text"
-                  value={credentials.username}
+                  type="email"
+                  value={credentials.email}
                   onChange={(event) =>
                     setCredentials((current) => ({
                       ...current,
-                      username: event.target.value,
+                      email: event.target.value,
                     }))
                   }
                 />
@@ -191,8 +214,8 @@ export function AdminPage({
                 />
               </label>
               {error ? <p className="admin-error">{error}</p> : null}
-              <button type="submit" className="btn btn-primary">
-                Přihlásit se
+              <button type="submit" className="btn btn-primary" disabled={isLoggingIn}>
+                {isLoggingIn ? "Přihlašuji..." : "Přihlásit se"}
                 <Icon name="arrow-right" size={16} />
               </button>
             </form>
@@ -226,10 +249,7 @@ export function AdminPage({
             <button
               type="button"
               className="btn btn-dark"
-              onClick={() => {
-                setAdminSession(false);
-                setIsAuthenticated(false);
-              }}
+              onClick={() => void signOut(auth)}
             >
               Odhlásit
             </button>

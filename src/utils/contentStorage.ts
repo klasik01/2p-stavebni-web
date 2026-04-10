@@ -5,9 +5,9 @@ import type { ManagedContent, SiteContent } from "../types/content";
 export const ADMIN_ROUTE = "#/admin";
 export const ADMIN_PROJECTS_ROUTE = "#/admin/projects";
 export const ADMIN_PROMOTIONS_ROUTE = "#/admin/promotions";
-export const ADMIN_CONTENT_KEY = "two-p-stavebni-managed-content";
-export const ADMIN_SESSION_KEY = "two-p-stavebni-admin-session";
-export const FIREBASE_CONTENT_PATH = "two-p-stavebni/content";
+export const ADMIN_CONTENT_KEY = "p-stavebni-managed-content";
+export const ADMIN_SESSION_KEY = "p-stavebni-admin-session";
+export const FIREBASE_CONTENT_PATH = "p-stavebni/content";
 
 export function loadManagedContent(baseContent: SiteContent): SiteContent {
   if (typeof window === "undefined") return baseContent;

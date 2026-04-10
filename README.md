@@ -69,6 +69,19 @@ git push -u origin main
 
 Obsah je tim padem sdileny mezi zarizenimi, ale prihlaseni je zatim stale docasne resene jako `admin / admin`.
 
+Realtime Database obsah se uklada do:
+
+```text
+p-stavebni/content
+```
+
+Pomocne lokalni klice v prohlizeci jsou:
+
+```text
+p-stavebni-managed-content
+p-stavebni-admin-session
+```
+
 ## Firebase config
 
 Firebase konfigurace uz neni natvrdo v kodu. Aplikace ji bere z `VITE_` env promennych:
@@ -84,7 +97,7 @@ VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
 VITE_FIREBASE_DATABASE_URL=...
 VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_STORAGE_BUCKET=gs://your-project.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
