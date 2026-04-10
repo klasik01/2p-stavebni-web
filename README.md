@@ -1,6 +1,6 @@
 # 2P Stavebni FE
 
-Frontend je postaveny na `React + TypeScript + Vite` a pripraveny pro deploy na Netlify.
+Frontend je postaveny na `React + TypeScript + Vite` a pripraveny pro deploy na GitHub Pages.
 
 ## Spusteni
 
@@ -15,25 +15,23 @@ npm run dev
 npm run build
 ```
 
-## GitHub pipeline
+## GitHub Pages pipeline
 
-Workflow je pripraveny v `.github/workflows/netlify-deploy.yml`.
+Workflow je pripraveny v `.github/workflows/deploy-pages.yml`.
 
 - Kazdy `push` a `pull request` spusti kontrolni build
-- Deploy na Netlify probehne automaticky jen z vetve `main` nebo `master`
-- GitHub ucet pro repo muze byt `klasik01`, workflow neni vazane na konkretni nazev repozitare
+- Deploy na GitHub Pages probehne automaticky po pushi do vetve `main`
+- Repo je nastavene pro `https://github.com/klasik01/2p-stavebni-web`
 
-Pro zprovozneni je potreba v GitHub repozitari nastavit tyto `Secrets and variables > Actions` secrety:
+Pro zprovozneni na GitHubu je potreba:
 
-- `NETLIFY_AUTH_TOKEN`
-- `NETLIFY_SITE_ID`
+1. V repozitari otevrit `Settings > Pages`
+2. V sekci `Build and deployment` nechat `Source: GitHub Actions`
+3. Pushnout zmeny do vetve `main`
 
 Typicky postup:
 
 ```bash
-git init
-git branch -M main
-git remote add origin git@github.com:klasik01/NAZEV-REPA.git
 git add .
 git commit -m "Initial frontend app"
 git push -u origin main
@@ -78,5 +76,10 @@ Prvni aktivni akce v poli se zobrazi jako popup.
 
 ## Formular
 
-Kontaktni formular je pripraveny pro `Netlify Forms`.
-Po deployi na Netlify se odeslana data objevi v administraci Netlify.
+Kontaktni formular je momentalne pripraveny pro staticky frontend, ale `GitHub Pages` sam o sobe neposkytuje backend pro odesilani emailu.
+
+Pokud chces realne odesilani zprav z webu, dalsi krok bude napojeni na:
+
+- `Formspree`
+- `EmailJS`
+- vlastni API nebo serverless funkci
