@@ -54,7 +54,7 @@ export type AboutContent = {
 
 export type ProjectImage = {
   src: string;
-  alt: string;
+  alt?: string;
   storagePath?: string;
 };
 

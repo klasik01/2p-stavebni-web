@@ -37,6 +37,10 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
 
   if (!project) return null;
 
+  if (project.images.length === 0 || !project.images[activeIndex]) {
+    return null;
+  }
+
   const activeImage = project.images[activeIndex];
 
   return (
@@ -46,7 +50,11 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
           <Icon name="close" size={24} />
         </button>
         <div className="project-modal-media">
-          <img src={activeImage.src} alt={activeImage.alt} className="project-modal-image" />
+          <img
+            src={activeImage.src}
+            alt={activeImage.alt || project.title}
+            className="project-modal-image"
+          />
           {project.images.length > 1 ? (
             <>
               <button
@@ -83,7 +91,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
                 key={image.src}
                 onClick={() => setActiveIndex(index)}
               >
-                <img src={image.src} alt={image.alt} />
+                <img src={image.src} alt={image.alt || project.title} />
               </button>
             ))}
           </div>

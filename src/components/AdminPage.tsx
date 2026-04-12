@@ -9,7 +9,7 @@ import {
   clearManagedContent,
   saveManagedContentToFirebase,
 } from "../utils/contentStorage";
-import { removeProjectImage, uploadProjectImage } from "../utils/storage";
+import { removeProjectImage, removeProjectImages, uploadProjectImage } from "../utils/storage";
 import { Icon } from "./Icon";
 
 type AdminPageProps = {
@@ -350,7 +350,8 @@ export function AdminPage({
                         message: `Projekt "${project.title || "Bez názvu"}" bude odstraněn z administrace.`,
                         confirmLabel: "Ano, odstranit",
                         tone: "danger",
-                        onConfirm: () => {
+                        onConfirm: async () => {
+                          await removeProjectImages(project.images);
                           setDraft((current) => ({
                             ...current,
                             projects: current.projects.filter((_, index) => index !== projectIndex),
@@ -482,63 +483,35 @@ export function AdminPage({
                   <div className="admin-stack compact">
                     {project.images.map((image, imageIndex) => (
                       <div className="admin-image-row" key={`${project.slug}-${imageIndex}`}>
-                        <label>
-                          URL obrázku
-                          <input
-                            type="text"
-                            value={image.src}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                projects: current.projects.map((item, index) =>
-                                  index === projectIndex
-                                    ? {
-                                        ...item,
-                                        images: item.images.map((entry, entryIndex) =>
-                                          entryIndex === imageIndex
-                                            ? { ...entry, src: event.target.value }
-                                            : entry,
-                                        ),
-                                      }
-                                    : item,
-                                ),
-                              }))
-                            }
-                          />
-                        </label>
-                        <label>
-                          Alt text
-                          <input
-                            type="text"
-                            value={image.alt}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                projects: current.projects.map((item, index) =>
-                                  index === projectIndex
-                                    ? {
-                                        ...item,
-                                        images: item.images.map((entry, entryIndex) =>
-                                          entryIndex === imageIndex
-                                            ? { ...entry, alt: event.target.value }
-                                            : entry,
-                                        ),
-                                      }
-                                    : item,
-                                ),
-                              }))
-                            }
-                          />
-                        </label>
-                        <div className="admin-upload-tools">
+                        <div className="admin-upload-tools admin-upload-tools-wide">
+                          <div className="admin-upload-header">
+                            <strong>Obrázek {imageIndex + 1}</strong>
+                            <span>
+                              {image.src
+                                ? "Po uložení projektu se URL propíše do databáze."
+                                : "Nahraj soubor do Firebase Storage."}
+                            </span>
+                          </div>
                           {image.src ? (
                             <img
                               src={image.src}
-                              alt={image.alt || "Náhled obrázku"}
+                              alt={image.alt || project.title || "Náhled obrázku"}
                               className="admin-image-preview"
                             />
                           ) : (
                             <div className="admin-image-placeholder">Bez obrázku</div>
+                          )}
+                          {image.src ? (
+                            <div className="admin-upload-meta">
+                              <span className="admin-upload-state success">Nahráno do Storage</span>
+                              {image.storagePath ? (
+                                <code className="admin-storage-path">{image.storagePath}</code>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <div className="admin-upload-meta">
+                              <span className="admin-upload-state">Obrázek ještě není nahraný</span>
+                            </div>
                           )}
                           <label className="admin-upload-button">
                             <input
@@ -587,7 +560,9 @@ export function AdminPage({
                             />
                             {uploadingKeys.includes(`${project.slug}-${imageIndex}`)
                               ? "Nahrávám..."
-                              : "Vybrat soubor"}
+                              : image.src
+                                ? "Nahrát nový soubor"
+                                : "Vybrat soubor"}
                           </label>
                         </div>
                         <button
@@ -600,6 +575,11 @@ export function AdminPage({
                               confirmLabel: "Ano, odstranit",
                               tone: "danger",
                               onConfirm: async () => {
+                                if (project.images.length <= 1) {
+                                  setNotice("Projekt musí mít alespoň jeden obrázek.");
+                                  window.setTimeout(() => setNotice(""), 3000);
+                                  return;
+                                }
                                 await removeProjectImage(image.storagePath);
                                 setDraft((current) => ({
                                   ...current,

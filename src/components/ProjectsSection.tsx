@@ -23,7 +23,9 @@ export function ProjectsSection({ content, onProjectOpen }: ProjectsSectionProps
           <p className="section-desc reveal is-light">{content.description}</p>
         </div>
         <div className="projects-grid">
-          {content.items.map((project, index) => (
+          {content.items
+            .filter((project) => project.images.length > 0 && project.images[0]?.src)
+            .map((project, index) => (
             <button
               type="button"
               className={`project-card reveal ${index === 0 ? "is-featured" : ""}`}
@@ -32,7 +34,7 @@ export function ProjectsSection({ content, onProjectOpen }: ProjectsSectionProps
             >
               <img
                 src={project.images[0]?.src}
-                alt={project.images[0]?.alt ?? project.title}
+                alt={project.images[0]?.alt || project.title}
                 className="project-img"
                 loading="lazy"
               />
