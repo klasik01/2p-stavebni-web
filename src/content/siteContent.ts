@@ -27,7 +27,7 @@ export const siteContent: SiteContent = {
     description:
       "Stojíme za každým projektem. Od rodinných domů po rekonstrukce veřejných budov – přinášíme řešení nejvyšší kvality s plnou transparentností.",
     backgroundImage: "https://2pstavebni.cz/assets/images/projects/6/1.jpg",
-    brandLogo: "https://2pstavebni.cz/assets/images/logo-02.png",
+    brandLogo: "https://2pstavebni.cz/assets/images/logo-01.png",
     primaryAction: { label: "Naše reference", href: "#reference" },
     secondaryAction: { label: "Kontaktujte nás", href: "#kontakt" },
     stats: [
