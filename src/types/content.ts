@@ -68,6 +68,7 @@ export type Project = {
   title: string;
   summary: string;
   location?: string;
+  hidden?: boolean;
   images: ProjectImage[];
 };
 

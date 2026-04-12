@@ -6,6 +6,7 @@ import {
   ADMIN_PROJECTS_ROUTE,
   ADMIN_PROMOTIONS_ROUTE,
   saveManagedContentToFirebase,
+  saveProjectDisplaySettingsToFirebase,
 } from "../utils/contentStorage";
 import { normalizeProjectImages } from "../utils/projectImages";
 import { removeProjectImage, removeProjectImages, uploadProjectImage } from "../utils/storage";
@@ -55,6 +56,7 @@ function createEmptyProject(): Project {
     title: "Nový projekt",
     summary: "",
     location: "",
+    hidden: false,
     images: [],
   };
 }
@@ -80,6 +82,7 @@ function clonePromotion(promotion: Promotion): Promotion {
 function normalizeProject(project: Project): Project {
   return {
     ...project,
+    hidden: Boolean(project.hidden),
     images: normalizeProjectImages(project.images),
   };
 }
@@ -108,6 +111,79 @@ function serializePromotion(promotion: Promotion) {
   return JSON.stringify(promotion);
 }
 
+function reconcileProjectEditors(
+  currentEditors: ProjectEditor[],
+  savedProjects: Project[],
+): ProjectEditor[] {
+  const nextEditors: ProjectEditor[] = [];
+
+  savedProjects.forEach((savedProject) => {
+    const existingEditor = currentEditors.find((editor) => editor.savedSlug === savedProject.slug);
+    const normalizedSavedProject = normalizeProject(cloneProject(savedProject));
+
+    if (!existingEditor) {
+      nextEditors.push(createProjectEditor(savedProject));
+      return;
+    }
+
+    const isDirty = serializeProject(existingEditor.project) !== serializeProject(savedProject);
+    nextEditors.push(
+      isDirty
+        ? existingEditor
+        : {
+            ...existingEditor,
+            savedSlug: savedProject.slug,
+            project: normalizedSavedProject,
+          },
+    );
+  });
+
+  currentEditors
+    .filter((editor) => editor.savedSlug === null)
+    .forEach((editor) => {
+      nextEditors.unshift(editor);
+    });
+
+  return nextEditors;
+}
+
+function reconcilePromotionEditors(
+  currentEditors: PromotionEditor[],
+  savedPromotions: Promotion[],
+): PromotionEditor[] {
+  const nextEditors: PromotionEditor[] = [];
+
+  savedPromotions.forEach((savedPromotion) => {
+    const existingEditor = currentEditors.find((editor) => editor.savedId === savedPromotion.id);
+
+    if (!existingEditor) {
+      nextEditors.push(createPromotionEditor(savedPromotion));
+      return;
+    }
+
+    const isDirty =
+      serializePromotion(existingEditor.promotion) !== serializePromotion(savedPromotion);
+
+    nextEditors.push(
+      isDirty
+        ? existingEditor
+        : {
+            ...existingEditor,
+            savedId: savedPromotion.id,
+            promotion: clonePromotion(savedPromotion),
+          },
+    );
+  });
+
+  currentEditors
+    .filter((editor) => editor.savedId === null)
+    .forEach((editor) => {
+      nextEditors.unshift(editor);
+    });
+
+  return nextEditors;
+}
+
 function getProjectStoragePaths(images: ProjectImage[]) {
   return images
     .map((image) => image.storagePath)
@@ -123,7 +199,39 @@ function getProjectSummary(project: Project) {
     total,
     visible,
     hasPrimary: Boolean(primary),
+    isVisible: !project.hidden,
   };
+}
+
+function buildPersistedProjects(
+  savedProjects: Project[],
+  editors: ProjectEditor[],
+  overrideEditor?: ProjectEditor,
+  overrideProject?: Project,
+) {
+  const savedMap = new Map(savedProjects.map((project) => [project.slug, project]));
+  const nextProjects: Project[] = [];
+
+  editors.forEach((editor) => {
+    if (overrideEditor && editor.editorId === overrideEditor.editorId && overrideProject) {
+      nextProjects.push(overrideProject);
+      return;
+    }
+
+    if (!editor.savedSlug) {
+      return;
+    }
+
+    const savedProject = savedMap.get(editor.savedSlug);
+    if (savedProject) {
+      nextProjects.push({
+        ...savedProject,
+        hidden: editor.project.hidden,
+      });
+    }
+  });
+
+  return nextProjects;
 }
 
 function moveItem<T>(items: T[], from: number, to: number) {
@@ -155,6 +263,8 @@ export function AdminPage({
   );
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [openPromotionId, setOpenPromotionId] = useState<string | null>(null);
+  const [dragProjectId, setDragProjectId] = useState<string | null>(null);
+  const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [uploadingKeys, setUploadingKeys] = useState<string[]>([]);
 
@@ -168,7 +278,11 @@ export function AdminPage({
   }, []);
 
   useEffect(() => {
-    setPromotionEditors(content.promotions.items.map(createPromotionEditor));
+    setProjectEditors((current) => reconcileProjectEditors(current, content.projects.items));
+  }, [content.projects.items]);
+
+  useEffect(() => {
+    setPromotionEditors((current) => reconcilePromotionEditors(current, content.promotions.items));
   }, [content.promotions.items]);
 
   const requestConfirmation = (state: ConfirmState) => {
@@ -293,21 +407,18 @@ export function AdminPage({
 
     try {
       const savedProject = getSavedProject(editor);
-      const nextProjects = [...content.projects.items];
-      const savedIndex = savedProject
-        ? nextProjects.findIndex((project) => project.slug === savedProject.slug)
-        : -1;
-
-      if (savedIndex >= 0) {
-        nextProjects[savedIndex] = normalizedProject;
-      } else {
-        nextProjects.unshift(normalizedProject);
-      }
+      const nextProjects = buildPersistedProjects(
+        content.projects.items,
+        projectEditors,
+        editor,
+        normalizedProject,
+      );
 
       await saveManagedContentToFirebase({
         projects: nextProjects,
         promotions: content.promotions.items,
       });
+      await saveProjectDisplaySettingsToFirebase(nextProjects);
 
       const removedImages = savedProject
         ? savedProject.images.filter(
@@ -428,6 +539,76 @@ export function AdminPage({
 
   const togglePromotion = (id: string) => {
     setOpenPromotionId((current) => (current === id ? null : id));
+  };
+
+  const moveProjectEditor = (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return;
+
+    const fromIndex = projectEditors.findIndex((editor) => editor.editorId === sourceId);
+    const toIndex = projectEditors.findIndex((editor) => editor.editorId === targetId);
+
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+      return;
+    }
+
+    const nextEditors = moveItem(projectEditors, fromIndex, toIndex);
+    setProjectEditors(nextEditors);
+
+    const nextProjects = buildPersistedProjects(content.projects.items, nextEditors);
+
+    void (async () => {
+      try {
+        await saveProjectDisplaySettingsToFirebase(nextProjects);
+
+        onContentChange({
+          ...content,
+          projects: { ...content.projects, items: nextProjects },
+          promotions: { items: content.promotions.items },
+        });
+
+        setNotice("Pořadí projektů bylo automaticky uloženo.");
+        window.setTimeout(() => setNotice(""), 2200);
+      } catch {
+        setNotice("Automatické uložení pořadí se nepodařilo.");
+        window.setTimeout(() => setNotice(""), 3500);
+      }
+    })();
+  };
+
+  const toggleProjectVisibility = (editorId: string) => {
+    const nextEditors = projectEditors.map((editor) =>
+      editor.editorId === editorId
+        ? {
+            ...editor,
+            project: normalizeProject({
+              ...editor.project,
+              hidden: !editor.project.hidden,
+            }),
+          }
+        : editor,
+    );
+
+    setProjectEditors(nextEditors);
+
+    const nextProjects = buildPersistedProjects(content.projects.items, nextEditors);
+
+    void (async () => {
+      try {
+        await saveProjectDisplaySettingsToFirebase(nextProjects);
+
+        onContentChange({
+          ...content,
+          projects: { ...content.projects, items: nextProjects },
+          promotions: { items: content.promotions.items },
+        });
+
+        setNotice("Viditelnost projektu byla automaticky uložena.");
+        window.setTimeout(() => setNotice(""), 2200);
+      } catch {
+        setNotice("Automatické uložení viditelnosti se nepodařilo.");
+        window.setTimeout(() => setNotice(""), 3500);
+      }
+    })();
   };
 
   if (isAuthLoading) {
@@ -601,9 +782,34 @@ export function AdminPage({
                 const isOpen = openProjectId === editor.editorId;
                 const isDirty = isProjectDirty(editor);
                 const isSaving = savingProjectIds.includes(editor.editorId);
+                const isDragging = dragProjectId === editor.editorId;
+                const isDropTarget = dragOverProjectId === editor.editorId && !isDragging;
 
                 return (
-                  <article className="admin-card" key={editor.editorId}>
+                  <article
+                    className={`admin-card ${isDragging ? "is-dragging" : ""} ${
+                      isDropTarget ? "is-drop-target" : ""
+                    }`}
+                    key={editor.editorId}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      if (dragProjectId && dragProjectId !== editor.editorId) {
+                        setDragOverProjectId(editor.editorId);
+                      }
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      if (dragProjectId) {
+                        moveProjectEditor(dragProjectId, editor.editorId);
+                      }
+                      setDragProjectId(null);
+                      setDragOverProjectId(null);
+                    }}
+                    onDragEnd={() => {
+                      setDragProjectId(null);
+                      setDragOverProjectId(null);
+                    }}
+                  >
                     <div className="admin-card-head">
                       <button
                         type="button"
@@ -616,52 +822,78 @@ export function AdminPage({
                             {project.location || "Bez lokality"} • {summary.total} obrázků •{" "}
                             {summary.visible} zobrazeno
                             {summary.hasPrimary ? " • hlavní obrázek zvolen" : ""}
+                            {summary.isVisible ? " • projekt zobrazen" : " • projekt skrytý"}
                           </p>
                         </div>
                         <span className={`admin-chevron ${isOpen ? "open" : ""}`}>
                           <Icon name="chevron-right" size={18} />
                         </span>
                       </button>
-                      <button
-                        type="button"
-                        className="admin-remove"
-                        onClick={() =>
-                          requestConfirmation({
-                            title: "Odstranit projekt?",
-                            message: `Projekt "${project.title || "Bez názvu"}" bude odstraněn z administrace i z databáze.`,
-                            confirmLabel: "Ano, odstranit",
-                            tone: "danger",
-                            onConfirm: async () => {
-                              await removeProjectImages(project.images);
-                              const nextProjects = content.projects.items.filter(
-                                (item) => item.slug !== editor.savedSlug,
-                              );
+                      <div className="admin-card-controls">
+                        <button
+                          type="button"
+                          className="admin-icon-button admin-drag-handle"
+                          aria-label="Přetáhnout projekt"
+                          draggable
+                          onDragStart={(event) => {
+                            setDragProjectId(editor.editorId);
+                            setDragOverProjectId(editor.editorId);
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", editor.editorId);
+                          }}
+                        >
+                          <Icon name="menu" size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-icon-button"
+                          aria-label={project.hidden ? "Zobrazit projekt" : "Skrýt projekt"}
+                          onClick={() => toggleProjectVisibility(editor.editorId)}
+                        >
+                          <Icon name={project.hidden ? "eye" : "eye-off"} size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-remove"
+                          onClick={() =>
+                            requestConfirmation({
+                              title: "Odstranit projekt?",
+                              message: `Projekt "${project.title || "Bez názvu"}" bude odstraněn z administrace i z databáze.`,
+                              confirmLabel: "Ano, odstranit",
+                              tone: "danger",
+                              onConfirm: async () => {
+                                await removeProjectImages(project.images);
+                                const nextProjects = content.projects.items.filter(
+                                  (item) => item.slug !== editor.savedSlug,
+                                );
 
-                              if (editor.savedSlug) {
-                                await saveManagedContentToFirebase({
-                                  projects: nextProjects,
-                                  promotions: content.promotions.items,
-                                });
+                                if (editor.savedSlug) {
+                                  await saveManagedContentToFirebase({
+                                    projects: nextProjects,
+                                    promotions: content.promotions.items,
+                                  });
+                                  await saveProjectDisplaySettingsToFirebase(nextProjects);
 
-                                onContentChange({
-                                  ...content,
-                                  projects: { ...content.projects, items: nextProjects },
-                                  promotions: { items: content.promotions.items },
-                                });
-                              }
+                                  onContentChange({
+                                    ...content,
+                                    projects: { ...content.projects, items: nextProjects },
+                                    promotions: { items: content.promotions.items },
+                                  });
+                                }
 
-                              setProjectEditors((current) =>
-                                current.filter((item) => item.editorId !== editor.editorId),
-                              );
-                              setOpenProjectId((current) =>
-                                current === editor.editorId ? null : current,
-                              );
-                            },
-                          })
-                        }
-                      >
-                        Odstranit
-                      </button>
+                                setProjectEditors((current) =>
+                                  current.filter((item) => item.editorId !== editor.editorId),
+                                );
+                                setOpenProjectId((current) =>
+                                  current === editor.editorId ? null : current,
+                                );
+                              },
+                            })
+                          }
+                        >
+                          Odstranit
+                        </button>
+                      </div>
                     </div>
 
                     <div className={`admin-card-body ${isOpen ? "open" : ""}`}>
@@ -742,46 +974,6 @@ export function AdminPage({
                                 nahradit novým souborem.
                               </p>
                             </div>
-                            <label className="btn btn-secondary admin-file-trigger">
-                              Přidat obrázek
-                              <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/jpg,image/webp"
-                                onChange={async (event) => {
-                                  const file = event.target.files?.[0];
-                                  if (!file) return;
-
-                                  const uploadKey = `${editor.editorId}-new-${Date.now()}`;
-                                  setUploadingState(uploadKey, true);
-                                  setNotice("");
-
-                                  try {
-                                    const uploaded = await uploadProjectImage(file, project.slug);
-                                    updateProjectEditor(editor.editorId, (current) => ({
-                                      ...current,
-                                      images: [
-                                        ...current.images,
-                                        {
-                                          ...uploaded,
-                                          isPrimary:
-                                            current.images.filter((image) => !image.hidden && image.src)
-                                              .length === 0,
-                                          hidden: false,
-                                        },
-                                      ],
-                                    }));
-                                    setNotice("Obrázek byl nahrán. Potvrď ho uložením projektu.");
-                                    window.setTimeout(() => setNotice(""), 2500);
-                                  } catch {
-                                    setNotice("Nahrání obrázku se nepodařilo. Zkontroluj Firebase Storage.");
-                                    window.setTimeout(() => setNotice(""), 4000);
-                                  } finally {
-                                    setUploadingState(uploadKey, false);
-                                    event.target.value = "";
-                                  }
-                                }}
-                              />
-                            </label>
                           </div>
 
                           <div className="admin-gallery-grid">
@@ -804,7 +996,7 @@ export function AdminPage({
                                         <span className="admin-gallery-badge primary">Hlavní</span>
                                       ) : null}
                                       {image.useInHero ? (
-                                        <span className="admin-gallery-badge background">Banner</span>
+                                        <span className="admin-gallery-badge hero">Banner</span>
                                       ) : null}
                                       {image.hidden ? (
                                         <span className="admin-gallery-badge muted">Skrytý</span>
@@ -990,6 +1182,81 @@ export function AdminPage({
                                 </article>
                               );
                             })}
+
+                            {(() => {
+                              const uploadKey = `${editor.editorId}-new`;
+
+                              return (
+                                <article className="admin-gallery-tile admin-gallery-tile-add">
+                                  <div className="admin-gallery-frame">
+                                    <div className="admin-image-placeholder admin-image-placeholder-add">
+                                      <div className="admin-image-placeholder-copy">
+                                        <Icon name="upload" size={24} />
+                                        <strong>Přidat obrázek</strong>
+                                        <span>
+                                          Vyber soubor a po nahrání se hned objeví v galerii.
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="admin-gallery-actions">
+                                    <label
+                                      className={`admin-icon-button admin-file-trigger admin-icon-button-wide ${
+                                        uploadingKeys.includes(uploadKey) ? "is-busy" : ""
+                                      }`}
+                                      aria-label="Nahrát nový obrázek"
+                                    >
+                                      <Icon name="upload" size={16} />
+                                      <span>
+                                        {uploadingKeys.includes(uploadKey)
+                                          ? "Nahrávám obrázek..."
+                                          : "Vybrat obrázek"}
+                                      </span>
+                                      <input
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                                        onChange={async (event) => {
+                                          const file = event.target.files?.[0];
+                                          if (!file) return;
+
+                                          setUploadingState(uploadKey, true);
+                                          setNotice("");
+
+                                          try {
+                                            const uploaded = await uploadProjectImage(file, project.slug);
+                                            updateProjectEditor(editor.editorId, (current) => ({
+                                              ...current,
+                                              images: [
+                                                ...current.images,
+                                                {
+                                                  ...uploaded,
+                                                  isPrimary:
+                                                    current.images.filter(
+                                                      (image) => !image.hidden && image.src,
+                                                    ).length === 0,
+                                                  hidden: false,
+                                                },
+                                              ],
+                                            }));
+                                            setNotice("Obrázek byl nahrán. Potvrď ho uložením projektu.");
+                                            window.setTimeout(() => setNotice(""), 2500);
+                                          } catch {
+                                            setNotice(
+                                              "Nahrání obrázku se nepodařilo. Zkontroluj Firebase Storage.",
+                                            );
+                                            window.setTimeout(() => setNotice(""), 4000);
+                                          } finally {
+                                            setUploadingState(uploadKey, false);
+                                            event.target.value = "";
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                </article>
+                              );
+                            })()}
                           </div>
                         </div>
 

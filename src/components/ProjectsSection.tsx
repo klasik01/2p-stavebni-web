@@ -25,6 +25,7 @@ export function ProjectsSection({ content, onProjectOpen }: ProjectsSectionProps
         </div>
         <div className="projects-grid">
           {content.items
+            .filter((project) => !project.hidden)
             .map((project) => ({
               project,
               primaryImage: getPrimaryProjectImage(project),

@@ -1069,6 +1069,27 @@ footer {
   gap: 18px;
 }
 
+.admin-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-card-controls .admin-icon-button,
+.admin-card-controls .admin-remove {
+  min-width: 56px;
+}
+
+.admin-card.is-dragging {
+  opacity: .72;
+}
+
+.admin-card.is-drop-target {
+  outline: 2px dashed var(--blue);
+  outline-offset: 4px;
+}
+
 .admin-section-head h2,
 .admin-card-head h3,
 .admin-subsection-head h4 {
@@ -1170,6 +1191,12 @@ footer {
   align-self: start;
 }
 
+.admin-gallery-tile-add {
+  border-style: dashed;
+  border-color: var(--dark-16);
+  background: linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(244,244,244,.88) 100%);
+}
+
 .admin-gallery-frame {
   display: flex;
   flex-direction: column;
@@ -1207,8 +1234,10 @@ footer {
   background: var(--red);
 }
 
-.admin-gallery-badge.background-hero {
-  background: rgba(--blue);
+.admin-gallery-badge.hero {
+  background: var(--dark-8);
+  color: var(--dark);
+  border-color: var(--dark-16);
 }
 
 .admin-gallery-badge.visible {
@@ -1229,7 +1258,10 @@ footer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   min-height: 44px;
+  min-width: 48px;
+  padding: 0 14px;
   border: none;
   border-radius: 12px;
   background: #ececec;
@@ -1261,6 +1293,43 @@ footer {
 .admin-icon-button.is-busy {
   background: var(--dark);
   color: var(--white);
+}
+
+.admin-drag-handle {
+  cursor: grab;
+}
+
+.admin-drag-handle:active {
+  cursor: grabbing;
+}
+
+.admin-icon-button-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-image-placeholder-add {
+  min-height: 132px;
+  background: linear-gradient(180deg, rgba(255,255,255,.9) 0%, rgba(242,242,242,.9) 100%);
+}
+
+.admin-image-placeholder-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--text-soft);
+  max-width: 220px;
+}
+
+.admin-image-placeholder-copy strong {
+  color: var(--dark);
+  font-size: 15px;
+}
+
+.admin-image-placeholder-copy span {
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .admin-upload-tools {
@@ -1391,6 +1460,11 @@ footer {
   flex-wrap: wrap;
 }
 
+.admin-project-save-actions .btn {
+  min-width: 180px;
+  justify-content: center;
+}
+
 .admin-clean {
   color: #137333;
   font-size: 14px;
@@ -1401,7 +1475,8 @@ footer {
   border: none;
   background: rgba(235,28,36,.08);
   color: var(--red);
-  padding: 12px 16px;
+  min-height: 44px;
+  padding: 12px 20px;
   border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
