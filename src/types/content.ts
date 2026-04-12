@@ -59,6 +59,7 @@ export type ProjectImage = {
   storagePath?: string;
   hidden?: boolean;
   isPrimary?: boolean;
+  useInHero?: boolean;
 };
 
 export type Project = {

@@ -141,8 +141,8 @@ export function AdminPage({
   const [projectEditors, setProjectEditors] = useState<ProjectEditor[]>(() =>
     content.projects.items.map(createProjectEditor),
   );
-  const [openProjects, setOpenProjects] = useState<string[]>([]);
-  const [openPromotions, setOpenPromotions] = useState<string[]>([]);
+  const [openProjectId, setOpenProjectId] = useState<string | null>(null);
+  const [openPromotionId, setOpenPromotionId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [uploadingKeys, setUploadingKeys] = useState<string[]>([]);
 
@@ -209,7 +209,7 @@ export function AdminPage({
     if (!savedProject) {
       await removeProjectImages(editor.project.images);
       setProjectEditors((current) => current.filter((item) => item.editorId !== editor.editorId));
-      setOpenProjects((current) => current.filter((item) => item !== editor.editorId));
+      setOpenProjectId((current) => (current === editor.editorId ? null : current));
       return;
     }
 
@@ -348,17 +348,11 @@ export function AdminPage({
   };
 
   const toggleProject = (editorId: string) => {
-    setOpenProjects((current) =>
-      current.includes(editorId)
-        ? current.filter((item) => item !== editorId)
-        : [...current, editorId],
-    );
+    setOpenProjectId((current) => (current === editorId ? null : editorId));
   };
 
   const togglePromotion = (id: string) => {
-    setOpenPromotions((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
+    setOpenPromotionId((current) => (current === id ? null : id));
   };
 
   if (isAuthLoading) {
@@ -539,7 +533,7 @@ export function AdminPage({
                     project: normalizeProject(createEmptyProject()),
                   };
                   setProjectEditors((current) => [newEditor, ...current]);
-                  setOpenProjects((current) => [...current, newEditor.editorId]);
+                  setOpenProjectId(newEditor.editorId);
                 }}
               >
                 Přidat projekt
@@ -550,7 +544,7 @@ export function AdminPage({
               {projectEditors.map((editor, editorIndex) => {
                 const project = editor.project;
                 const summary = getProjectSummary(project);
-                const isOpen = openProjects.includes(editor.editorId);
+                const isOpen = openProjectId === editor.editorId;
                 const isDirty = isProjectDirty(editor);
                 const isSaving = savingProjectIds.includes(editor.editorId);
 
@@ -605,8 +599,8 @@ export function AdminPage({
                               setProjectEditors((current) =>
                                 current.filter((item) => item.editorId !== editor.editorId),
                               );
-                              setOpenProjects((current) =>
-                                current.filter((item) => item !== editor.editorId),
+                              setOpenProjectId((current) =>
+                                current === editor.editorId ? null : current,
                               );
                             },
                           })
@@ -616,8 +610,8 @@ export function AdminPage({
                       </button>
                     </div>
 
-                    {isOpen ? (
-                      <>
+                    <div className={`admin-card-body ${isOpen ? "open" : ""}`}>
+                      <div className="admin-card-body-inner">
                         <div className="admin-grid">
                           <label>
                             Slug
@@ -755,6 +749,9 @@ export function AdminPage({
                                       {image.isPrimary ? (
                                         <span className="admin-gallery-badge primary">Hlavní</span>
                                       ) : null}
+                                      {image.useInHero ? (
+                                        <span className="admin-gallery-badge background">Banner</span>
+                                      ) : null}
                                       {image.hidden ? (
                                         <span className="admin-gallery-badge muted">Skrytý</span>
                                       ) : (
@@ -786,13 +783,43 @@ export function AdminPage({
                                     <button
                                       type="button"
                                       className="admin-icon-button"
+                                      aria-label={
+                                        image.useInHero
+                                          ? "Zakázat použití v hero banneru"
+                                          : "Povolit použití v hero banneru"
+                                      }
+                                      onClick={() =>
+                                        updateProjectEditor(editor.editorId, (current) => ({
+                                          ...current,
+                                          images: current.images.map((entry, entryIndex) =>
+                                            entryIndex === imageIndex
+                                              ? {
+                                                  ...entry,
+                                                  useInHero: !entry.useInHero,
+                                                  hidden: false,
+                                                }
+                                              : entry,
+                                          ),
+                                        }))
+                                      }
+                                    >
+                                      <Icon name="image" size={16} />
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      className="admin-icon-button"
                                       aria-label={image.hidden ? "Zobrazit obrázek" : "Skrýt obrázek"}
                                       onClick={() =>
                                         updateProjectEditor(editor.editorId, (current) => ({
                                           ...current,
                                           images: current.images.map((entry, entryIndex) =>
                                             entryIndex === imageIndex
-                                              ? { ...entry, hidden: !entry.hidden }
+                                              ? {
+                                                  ...entry,
+                                                  hidden: !entry.hidden,
+                                                  useInHero: entry.hidden ? entry.useInHero : false,
+                                                }
                                               : entry,
                                           ),
                                         }))
@@ -957,8 +984,8 @@ export function AdminPage({
                             <p className="admin-clean">Projekt je uložený a bez lokálních změn.</p>
                           </div>
                         )}
-                      </>
-                    ) : null}
+                      </div>
+                    </div>
                   </article>
                 );
               })}
@@ -982,7 +1009,7 @@ export function AdminPage({
                 onClick={() => {
                   const newPromotion = createEmptyPromotion();
                   setPromotionDraft((current) => [newPromotion, ...current]);
-                  setOpenPromotions((current) => [...current, newPromotion.id]);
+                  setOpenPromotionId(newPromotion.id);
                 }}
               >
                 Přidat akci
@@ -1005,7 +1032,7 @@ export function AdminPage({
                           {promotion.startsAt || "bez začátku"} až {promotion.endsAt || "bez konce"}
                         </p>
                       </div>
-                      <span className={`admin-chevron ${openPromotions.includes(promotion.id) ? "open" : ""}`}>
+                      <span className={`admin-chevron ${openPromotionId === promotion.id ? "open" : ""}`}>
                         <Icon name="chevron-right" size={18} />
                       </span>
                     </button>
@@ -1022,8 +1049,8 @@ export function AdminPage({
                             setPromotionDraft((current) =>
                               current.filter((_, index) => index !== promotionIndex),
                             );
-                            setOpenPromotions((current) =>
-                              current.filter((item) => item !== promotion.id),
+                            setOpenPromotionId((current) =>
+                              current === promotion.id ? null : current,
                             );
                           },
                         })
@@ -1033,8 +1060,9 @@ export function AdminPage({
                     </button>
                   </div>
 
-                  {openPromotions.includes(promotion.id) ? (
-                    <div className="admin-grid">
+                  <div className={`admin-card-body ${openPromotionId === promotion.id ? "open" : ""}`}>
+                    <div className="admin-card-body-inner">
+                      <div className="admin-grid">
                       <label>
                         ID akce
                         <input
@@ -1178,8 +1206,9 @@ export function AdminPage({
                           }
                         />
                       </label>
+                      </div>
                     </div>
-                  ) : null}
+                  </div>
                 </article>
               ))}
             </div>

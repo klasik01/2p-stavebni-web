@@ -70,6 +70,8 @@ export function Icon({ name, size = 24, strokeWidth = 2, filled = false }: IconP
       return <svg {...common}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></svg>;
     case "upload":
       return <svg {...common}><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" /><path d="M8 20h8" /></svg>;
+    case "image":
+      return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="m21 15-4.5-4.5L8 19" /></svg>;
     case "scroll":
       return <svg {...common}><path d="M7 13l5 5 5-5M7 6l5 5 5-5" /></svg>;
     default:

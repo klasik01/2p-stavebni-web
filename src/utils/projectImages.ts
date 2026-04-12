@@ -7,6 +7,7 @@ export function normalizeProjectImages(images: ProjectImage[]) {
       ...image,
       hidden: Boolean(image.hidden),
       isPrimary: Boolean(image.isPrimary),
+      useInHero: Boolean(image.useInHero),
     }));
 
   const visible = normalized.filter((image) => !image.hidden);
@@ -43,4 +44,15 @@ export function getVisibleProjectImages(project: Project) {
 export function getPrimaryProjectImage(project: Project) {
   const visibleImages = getVisibleProjectImages(project);
   return visibleImages.find((image) => image.isPrimary) ?? visibleImages[0] ?? null;
+}
+
+export function getHeroProjectImages(projects: Project[]) {
+  const normalizedProjects = projects.map((project) => ({
+    ...project,
+    images: normalizeProjectImages(project.images),
+  }));
+
+  return normalizedProjects
+    .flatMap((project) => project.images)
+    .filter((image) => !image.hidden && image.useInHero);
 }

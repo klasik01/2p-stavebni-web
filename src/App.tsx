@@ -13,6 +13,7 @@ import { ServicesSection } from "./components/ServicesSection";
 import { TrustBar } from "./components/TrustBar";
 import { siteContent } from "./content/siteContent";
 import type { Project } from "./types/content";
+import { getHeroProjectImages } from "./utils/projectImages";
 import {
   ADMIN_ROUTE,
   ADMIN_PROJECTS_ROUTE,
@@ -41,6 +42,11 @@ function App() {
       return true;
     });
   }, [content.promotions.items]);
+
+  const heroBackgroundImages = useMemo(
+    () => getHeroProjectImages(content.projects.items).map((image) => image.src),
+    [content.projects.items],
+  );
 
   useEffect(() => {
     const onHashChange = () => setRoute(window.location.hash || "#uvod");
@@ -132,7 +138,7 @@ function App() {
         navigation={content.navigation}
       />
       <main>
-        <HeroSection content={content.hero} />
+        <HeroSection content={content.hero} backgroundImages={heroBackgroundImages} />
         <TrustBar items={content.trustBar} />
         <ServicesSection content={content.services} />
         <AboutSection content={content.about} />

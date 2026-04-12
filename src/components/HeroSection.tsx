@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HeroContent } from "../types/content";
 import { Icon } from "./Icon";
 
 type HeroSectionProps = {
   content: HeroContent;
+  backgroundImages?: string[];
 };
 
 function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
@@ -52,20 +53,46 @@ function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
   );
 }
 
-export function HeroSection({ content }: HeroSectionProps) {
+export function HeroSection({ content, backgroundImages = [] }: HeroSectionProps) {
   const [loaded, setLoaded] = useState(false);
+  const [activeBackgroundIndex, setActiveBackgroundIndex] = useState(0);
+  const heroImages = useMemo(
+    () => (backgroundImages.length > 0 ? backgroundImages : [content.backgroundImage]),
+    [backgroundImages, content.backgroundImage],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => setLoaded(true), 100);
     return () => window.clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    setActiveBackgroundIndex(0);
+  }, [heroImages.length]);
+
+  useEffect(() => {
+    if (heroImages.length <= 1) return undefined;
+
+    const interval = window.setInterval(() => {
+      setActiveBackgroundIndex((current) => (current + 1) % heroImages.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [heroImages]);
+
   return (
     <section className="hero" id="uvod">
-      <div
-        className={`hero-bg ${loaded ? "loaded" : ""}`}
-        style={{ backgroundImage: `url('${content.backgroundImage}')` }}
-      />
+      <div className="hero-bg-stack" aria-hidden="true">
+        {heroImages.map((image, index) => (
+          <div
+            key={`${image}-${index}`}
+            className={`hero-bg ${loaded ? "loaded" : ""} ${
+              index === activeBackgroundIndex ? "is-active" : ""
+            }`}
+            style={{ backgroundImage: `url('${image}')` }}
+          />
+        ))}
+      </div>
       <div className="hero-overlay" />
       <div className="hero-accent" />
       <div className="container">

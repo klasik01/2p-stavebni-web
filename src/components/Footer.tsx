@@ -44,6 +44,9 @@ export function Footer({ content, navigation, logo }: FooterProps) {
                   <a href={item.href}>{item.label}</a>
                 </li>
               ))}
+              <li>
+                <a href="#/admin/projects">Administrace</a>
+              </li>
             </ul>
           </div>
           <div className="footer-col">
