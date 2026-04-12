@@ -5,6 +5,7 @@ import type { ManagedContent, Project, SiteContent } from "../types/content";
 export const ADMIN_ROUTE = "#/admin";
 export const ADMIN_PROJECTS_ROUTE = "#/admin/projects";
 export const ADMIN_PROMOTIONS_ROUTE = "#/admin/promotions";
+export const ADMIN_EMPLOYEES_ROUTE = "#/admin/employees";
 export const ADMIN_SESSION_KEY = "p-stavebni-admin-session";
 export const FIREBASE_CONTENT_PATH = "p-stavebni/content";
 export const FIREBASE_PROJECT_DISPLAY_PATH = "p-stavebni/project-display";
@@ -40,6 +41,10 @@ function mergeManagedContent(baseContent: SiteContent, parsed: Partial<ManagedCo
     },
     promotions: {
       items: Array.isArray(parsed.promotions) ? parsed.promotions : [],
+    },
+    contact: {
+      ...baseContent.contact,
+      team: Array.isArray(parsed.team) ? parsed.team : [],
     },
   };
 }

@@ -97,7 +97,7 @@ export const siteContent: SiteContent = {
     ],
     mainImage: "https://2pstavebni.cz/assets/images/projects/2/12.jpg",
     accentImage: "https://2pstavebni.cz/assets/images/projects/6/1.jpg",
-    badgeValue: "15+",
+    badgeValue: "10+",
     badgeText: "Let v oboru",
     features: [
       "Kompletní dodávky výplní otvorů",
@@ -214,29 +214,7 @@ export const siteContent: SiteContent = {
     registration: "IČO: 08318883 | DIČ: CZ08318883",
     phone: "+420 605 075 324",
     email: "info@2pstavebni.cz",
-    team: [
-      {
-        name: "Pavel Pinkas",
-        role: "Jednatel",
-        phone: "+420 774 110 224",
-        email: "pinkas@2pstavebni.cz",
-        initials: "PP",
-      },
-      {
-        name: "Jan Pinkas",
-        role: "Stavbyvedoucí",
-        phone: "+420 737 050 583",
-        email: "jan.pinkas@2pstavebni.cz",
-        initials: "JP",
-      },
-      {
-        name: "Bc. Aneta Buřičová",
-        role: "Příprava staveb",
-        phone: "+420 605 075 324",
-        email: "aneta.buricova@2pstavebni.cz",
-        initials: "AB",
-      },
-    ],
+    team: [],
   },
   footer: {
     description:

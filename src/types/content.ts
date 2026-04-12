@@ -159,4 +159,5 @@ export type SiteContent = {
 export type ManagedContent = {
   projects: Project[];
   promotions: Promotion[];
+  team: TeamMember[];
 };

@@ -1,8 +1,9 @@
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
-import type { Project, ProjectImage, Promotion, SiteContent } from "../types/content";
+import type { Project, ProjectImage, Promotion, SiteContent, TeamMember } from "../types/content";
 import {
+  ADMIN_EMPLOYEES_ROUTE,
   ADMIN_PROJECTS_ROUTE,
   ADMIN_PROMOTIONS_ROUTE,
   saveManagedContentToFirebase,
@@ -15,7 +16,7 @@ import { Icon } from "./Icon";
 type AdminPageProps = {
   content: SiteContent;
   onContentChange: (content: SiteContent) => void;
-  currentSection: "projects" | "promotions";
+  currentSection: "projects" | "promotions" | "employees";
 };
 
 type ConfirmState = {
@@ -36,6 +37,12 @@ type PromotionEditor = {
   editorId: string;
   savedId: string | null;
   promotion: Promotion;
+};
+
+type EmployeeEditor = {
+  editorId: string;
+  savedEmail: string | null;
+  member: TeamMember;
 };
 
 function createEditorId() {
@@ -79,6 +86,10 @@ function clonePromotion(promotion: Promotion): Promotion {
   return { ...promotion };
 }
 
+function cloneTeamMember(member: TeamMember): TeamMember {
+  return { ...member };
+}
+
 function normalizeProject(project: Project): Project {
   return {
     ...project,
@@ -103,12 +114,34 @@ function createPromotionEditor(promotion: Promotion): PromotionEditor {
   };
 }
 
+function createEmployeeEditor(member: TeamMember): EmployeeEditor {
+  return {
+    editorId: createEditorId(),
+    savedEmail: member.email,
+    member: cloneTeamMember(member),
+  };
+}
+
 function serializeProject(project: Project) {
   return JSON.stringify(normalizeProject(project));
 }
 
 function serializePromotion(promotion: Promotion) {
   return JSON.stringify(promotion);
+}
+
+function serializeTeamMember(member: TeamMember) {
+  return JSON.stringify(member);
+}
+
+function createEmptyEmployee(): TeamMember {
+  return {
+    name: "Nový zaměstnanec",
+    role: "",
+    phone: "",
+    email: "",
+    initials: "NZ",
+  };
 }
 
 function reconcileProjectEditors(
@@ -177,6 +210,41 @@ function reconcilePromotionEditors(
 
   currentEditors
     .filter((editor) => editor.savedId === null)
+    .forEach((editor) => {
+      nextEditors.unshift(editor);
+    });
+
+  return nextEditors;
+}
+
+function reconcileEmployeeEditors(
+  currentEditors: EmployeeEditor[],
+  savedMembers: TeamMember[],
+): EmployeeEditor[] {
+  const nextEditors: EmployeeEditor[] = [];
+
+  savedMembers.forEach((savedMember) => {
+    const existingEditor = currentEditors.find((editor) => editor.savedEmail === savedMember.email);
+
+    if (!existingEditor) {
+      nextEditors.push(createEmployeeEditor(savedMember));
+      return;
+    }
+
+    const isDirty = serializeTeamMember(existingEditor.member) !== serializeTeamMember(savedMember);
+    nextEditors.push(
+      isDirty
+        ? existingEditor
+        : {
+            ...existingEditor,
+            savedEmail: savedMember.email,
+            member: cloneTeamMember(savedMember),
+          },
+    );
+  });
+
+  currentEditors
+    .filter((editor) => editor.savedEmail === null)
     .forEach((editor) => {
       nextEditors.unshift(editor);
     });
@@ -260,14 +328,19 @@ export function AdminPage({
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [savingProjectIds, setSavingProjectIds] = useState<string[]>([]);
   const [savingPromotionIds, setSavingPromotionIds] = useState<string[]>([]);
+  const [savingEmployeeIds, setSavingEmployeeIds] = useState<string[]>([]);
   const [promotionEditors, setPromotionEditors] = useState<PromotionEditor[]>(() =>
     content.promotions.items.map(createPromotionEditor),
+  );
+  const [employeeEditors, setEmployeeEditors] = useState<EmployeeEditor[]>(() =>
+    content.contact.team.map(createEmployeeEditor),
   );
   const [projectEditors, setProjectEditors] = useState<ProjectEditor[]>(() =>
     content.projects.items.map(createProjectEditor),
   );
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [openPromotionId, setOpenPromotionId] = useState<string | null>(null);
+  const [openEmployeeId, setOpenEmployeeId] = useState<string | null>(null);
   const [dragProjectId, setDragProjectId] = useState<string | null>(null);
   const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
@@ -290,6 +363,10 @@ export function AdminPage({
     setPromotionEditors((current) => reconcilePromotionEditors(current, content.promotions.items));
   }, [content.promotions.items]);
 
+  useEffect(() => {
+    setEmployeeEditors((current) => reconcileEmployeeEditors(current, content.contact.team));
+  }, [content.contact.team]);
+
   const requestConfirmation = (state: ConfirmState) => {
     setConfirmState(state);
   };
@@ -308,6 +385,12 @@ export function AdminPage({
 
   const setSavingPromotionState = (editorId: string, isActive: boolean) => {
     setSavingPromotionIds((current) =>
+      isActive ? [...new Set([...current, editorId])] : current.filter((item) => item !== editorId),
+    );
+  };
+
+  const setSavingEmployeeState = (editorId: string, isActive: boolean) => {
+    setSavingEmployeeIds((current) =>
       isActive ? [...new Set([...current, editorId])] : current.filter((item) => item !== editorId),
     );
   };
@@ -355,6 +438,30 @@ export function AdminPage({
       current.map((editor) =>
         editor.editorId === editorId
           ? { ...editor, promotion: clonePromotion(updater(clonePromotion(editor.promotion))) }
+          : editor,
+      ),
+    );
+  };
+
+  const getSavedEmployee = (editor: EmployeeEditor) => {
+    if (!editor.savedEmail) return null;
+    return content.contact.team.find((member) => member.email === editor.savedEmail) ?? null;
+  };
+
+  const isEmployeeDirty = (editor: EmployeeEditor) => {
+    const savedEmployee = getSavedEmployee(editor);
+    if (!savedEmployee) return true;
+    return serializeTeamMember(editor.member) !== serializeTeamMember(savedEmployee);
+  };
+
+  const updateEmployeeEditor = (
+    editorId: string,
+    updater: (member: TeamMember) => TeamMember,
+  ) => {
+    setEmployeeEditors((current) =>
+      current.map((editor) =>
+        editor.editorId === editorId
+          ? { ...editor, member: cloneTeamMember(updater(cloneTeamMember(editor.member))) }
           : editor,
       ),
     );
@@ -422,6 +529,7 @@ export function AdminPage({
       await saveManagedContentToFirebase({
         projects: nextProjects,
         promotions: content.promotions.items,
+        team: content.contact.team,
       });
       await saveProjectDisplaySettingsToFirebase(nextProjects);
 
@@ -441,6 +549,7 @@ export function AdminPage({
         ...content,
         projects: { ...content.projects, items: nextProjects },
         promotions: { items: content.promotions.items },
+        contact: { ...content.contact, team: content.contact.team },
       });
 
       setProjectEditors((current) =>
@@ -509,11 +618,13 @@ export function AdminPage({
       await saveManagedContentToFirebase({
         projects: content.projects.items,
         promotions: nextPromotions,
+        team: content.contact.team,
       });
 
       onContentChange({
         ...content,
         promotions: { items: nextPromotions },
+        contact: { ...content.contact, team: content.contact.team },
       });
 
       setPromotionEditors((current) =>
@@ -538,12 +649,96 @@ export function AdminPage({
     }
   };
 
+  const cancelEmployeeChanges = (editor: EmployeeEditor) => {
+    const savedEmployee = getSavedEmployee(editor);
+    if (!savedEmployee) {
+      setEmployeeEditors((current) => current.filter((item) => item.editorId !== editor.editorId));
+      setOpenEmployeeId((current) => (current === editor.editorId ? null : current));
+      return;
+    }
+
+    setEmployeeEditors((current) =>
+      current.map((item) =>
+        item.editorId === editor.editorId
+          ? { ...item, member: cloneTeamMember(savedEmployee) }
+          : item,
+      ),
+    );
+  };
+
+  const saveEmployeeChanges = async (editor: EmployeeEditor) => {
+    const normalizedMember = cloneTeamMember(editor.member);
+
+    if (!normalizedMember.name.trim()) {
+      setNotice("Zaměstnanec musí mít jméno.");
+      window.setTimeout(() => setNotice(""), 3000);
+      return;
+    }
+
+    if (!normalizedMember.email.trim()) {
+      setNotice("Zaměstnanec musí mít email.");
+      window.setTimeout(() => setNotice(""), 3000);
+      return;
+    }
+
+    setSavingEmployeeState(editor.editorId, true);
+
+    try {
+      const savedEmployee = getSavedEmployee(editor);
+      const nextTeam = [...content.contact.team];
+      const savedIndex = savedEmployee
+        ? nextTeam.findIndex((member) => member.email === savedEmployee.email)
+        : -1;
+
+      if (savedIndex >= 0) {
+        nextTeam[savedIndex] = normalizedMember;
+      } else {
+        nextTeam.unshift(normalizedMember);
+      }
+
+      await saveManagedContentToFirebase({
+        projects: content.projects.items,
+        promotions: content.promotions.items,
+        team: nextTeam,
+      });
+
+      onContentChange({
+        ...content,
+        contact: { ...content.contact, team: nextTeam },
+      });
+
+      setEmployeeEditors((current) =>
+        current.map((item) =>
+          item.editorId === editor.editorId
+            ? {
+                ...item,
+                savedEmail: normalizedMember.email,
+                member: cloneTeamMember(normalizedMember),
+              }
+            : item,
+        ),
+      );
+
+      setNotice(`Zaměstnanec "${normalizedMember.name}" byl uložen.`);
+      window.setTimeout(() => setNotice(""), 2500);
+    } catch {
+      setNotice("Uložení zaměstnance se nepodařilo.");
+      window.setTimeout(() => setNotice(""), 4000);
+    } finally {
+      setSavingEmployeeState(editor.editorId, false);
+    }
+  };
+
   const toggleProject = (editorId: string) => {
     setOpenProjectId((current) => (current === editorId ? null : editorId));
   };
 
   const togglePromotion = (id: string) => {
     setOpenPromotionId((current) => (current === id ? null : id));
+  };
+
+  const toggleEmployee = (id: string) => {
+    setOpenEmployeeId((current) => (current === id ? null : id));
   };
 
   const moveProjectEditor = (sourceId: string, targetId: string) => {
@@ -569,6 +764,7 @@ export function AdminPage({
           ...content,
           projects: { ...content.projects, items: nextProjects },
           promotions: { items: content.promotions.items },
+          contact: { ...content.contact, team: content.contact.team },
         });
 
         setNotice("Pořadí projektů bylo automaticky uloženo.");
@@ -605,6 +801,7 @@ export function AdminPage({
           ...content,
           projects: { ...content.projects, items: nextProjects },
           promotions: { items: content.promotions.items },
+          contact: { ...content.contact, team: content.contact.team },
         });
 
         setNotice("Viditelnost projektu byla automaticky uložena.");
@@ -708,7 +905,8 @@ export function AdminPage({
             <h1>Obsah webu 2P Stavební</h1>
             <p>
               Správa je dostupná na adresách <strong>{ADMIN_PROJECTS_ROUTE}</strong> a{" "}
-              <strong>{ADMIN_PROMOTIONS_ROUTE}</strong>. Obsah se ukládá do Firebase Realtime
+              <strong>{ADMIN_PROMOTIONS_ROUTE}</strong> a{" "}
+              <strong>{ADMIN_EMPLOYEES_ROUTE}</strong>. Obsah se ukládá do Firebase Realtime
               Database a veřejný web z ní data načítá.
             </p>
           </div>
@@ -736,12 +934,23 @@ export function AdminPage({
             >
               Akce
             </a>
+            <a
+              href={ADMIN_EMPLOYEES_ROUTE}
+              className={`admin-page-link ${currentSection === "employees" ? "active" : ""}`}
+            >
+              Zaměstnanci
+            </a>
           </div>
 
           {currentSection === "promotions" ? (
             <p className="admin-inline-help">
               Každá akce má vlastní změny. Po úpravě se přímo v její kartě ukáže `Uložit` a
               `Zrušit`.
+            </p>
+          ) : currentSection === "employees" ? (
+            <p className="admin-inline-help">
+              Každý zaměstnanec má vlastní změny. Upravíš jméno, roli, email i telefon a pak vše
+              uložíš přímo v kartě.
             </p>
           ) : (
             <p className="admin-inline-help">
@@ -874,6 +1083,7 @@ export function AdminPage({
                                   await saveManagedContentToFirebase({
                                     projects: nextProjects,
                                     promotions: content.promotions.items,
+                                    team: content.contact.team,
                                   });
                                   await saveProjectDisplaySettingsToFirebase(nextProjects);
 
@@ -1317,6 +1527,220 @@ export function AdminPage({
           </section>
         ) : null}
 
+        {currentSection === "employees" ? (
+          <section className="admin-section admin-section-employees">
+            <div className="admin-section-head">
+              <div>
+                <h2>Zaměstnanci a kontakty</h2>
+                <p>
+                  Upravuješ zde kontaktní osoby, které se zobrazují ve veřejné kontaktní sekci.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  const newEditor = createEmployeeEditor(createEmptyEmployee());
+                  newEditor.savedEmail = null;
+                  setEmployeeEditors((current) => [newEditor, ...current]);
+                  setOpenEmployeeId(newEditor.editorId);
+                }}
+              >
+                Přidat zaměstnance
+              </button>
+            </div>
+
+            <div className="admin-stack">
+              {employeeEditors.map((editor, employeeIndex) => {
+                const member = editor.member;
+                const isOpen = openEmployeeId === editor.editorId;
+                const isDirty = isEmployeeDirty(editor);
+                const isSaving = savingEmployeeIds.includes(editor.editorId);
+
+                return (
+                  <article className="admin-card" key={editor.editorId}>
+                    <div className="admin-card-head">
+                      <button
+                        type="button"
+                        className="admin-card-toggle"
+                        onClick={() => toggleEmployee(editor.editorId)}
+                      >
+                        <div>
+                          <h3>{member.name || `Zaměstnanec ${employeeIndex + 1}`}</h3>
+                          <p className="admin-card-meta">
+                            {member.role || "Bez pozice"} • {member.email || "bez emailu"} •{" "}
+                            {member.phone || "bez telefonu"}
+                          </p>
+                        </div>
+                        <span className={`admin-chevron ${isOpen ? "open" : ""}`}>
+                          <Icon name="chevron-right" size={18} />
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-remove"
+                        onClick={() =>
+                          requestConfirmation({
+                            title: "Odstranit zaměstnance?",
+                            message: `Kontakt "${member.name || "Bez názvu"}" bude odstraněn z administrace i z databáze.`,
+                            confirmLabel: "Ano, odstranit",
+                            tone: "danger",
+                            onConfirm: async () => {
+                              const nextTeam = content.contact.team.filter(
+                                (item) => item.email !== editor.savedEmail,
+                              );
+
+                              if (editor.savedEmail) {
+                                await saveManagedContentToFirebase({
+                                  projects: content.projects.items,
+                                  promotions: content.promotions.items,
+                                  team: nextTeam,
+                                });
+
+                                onContentChange({
+                                  ...content,
+                                  contact: { ...content.contact, team: nextTeam },
+                                });
+                              }
+
+                              setEmployeeEditors((current) =>
+                                current.filter((item) => item.editorId !== editor.editorId),
+                              );
+                              setOpenEmployeeId((current) =>
+                                current === editor.editorId ? null : current,
+                              );
+                            },
+                          })
+                        }
+                      >
+                        Odstranit
+                      </button>
+                    </div>
+
+                    <div className={`admin-card-body ${isOpen ? "open" : ""}`}>
+                      <div className="admin-card-body-inner">
+                        <div className="admin-grid">
+                          <label>
+                            Jméno a příjmení
+                            <input
+                              type="text"
+                              value={member.name}
+                              onChange={(event) =>
+                                updateEmployeeEditor(editor.editorId, (current) => ({
+                                  ...current,
+                                  name: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            Iniciály
+                            <input
+                              type="text"
+                              value={member.initials}
+                              onChange={(event) =>
+                                updateEmployeeEditor(editor.editorId, (current) => ({
+                                  ...current,
+                                  initials: event.target.value.slice(0, 3).toUpperCase(),
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            Pozice
+                            <input
+                              type="text"
+                              value={member.role}
+                              onChange={(event) =>
+                                updateEmployeeEditor(editor.editorId, (current) => ({
+                                  ...current,
+                                  role: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            Telefon
+                            <input
+                              type="text"
+                              value={member.phone}
+                              onChange={(event) =>
+                                updateEmployeeEditor(editor.editorId, (current) => ({
+                                  ...current,
+                                  phone: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="admin-field-wide">
+                            Email
+                            <input
+                              type="email"
+                              value={member.email}
+                              onChange={(event) =>
+                                updateEmployeeEditor(editor.editorId, (current) => ({
+                                  ...current,
+                                  email: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+
+                        {isDirty ? (
+                          <div className="admin-project-savebar">
+                            <p className="admin-dirty">U tohoto zaměstnance máš neuložené změny.</p>
+                            <div className="admin-project-save-actions">
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  requestConfirmation({
+                                    title: "Zrušit změny?",
+                                    message:
+                                      "Vrátí se poslední uložený stav kontaktu a zahodí se lokální úpravy.",
+                                    confirmLabel: "Ano, zrušit změny",
+                                    tone: "danger",
+                                    onConfirm: () => cancelEmployeeChanges(editor),
+                                  })
+                                }
+                              >
+                                Zrušit změny
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                disabled={isSaving}
+                                onClick={() =>
+                                  requestConfirmation({
+                                    title: "Uložit zaměstnance?",
+                                    message:
+                                      "Tímto uložíš kontaktní údaje zaměstnance do Firebase databáze.",
+                                    confirmLabel: isSaving ? "Ukládám..." : "Ano, uložit",
+                                    tone: "primary",
+                                    onConfirm: () => saveEmployeeChanges(editor),
+                                  })
+                                }
+                              >
+                                {isSaving ? "Ukládám..." : "Uložit zaměstnance"}
+                                <Icon name="send" size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="admin-project-savebar is-clean">
+                            <p className="admin-clean">Kontakt je uložený a bez lokálních změn.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
         {currentSection === "promotions" ? (
           <section className="admin-section admin-section-promotions">
             <div className="admin-section-head">
@@ -1385,6 +1809,7 @@ export function AdminPage({
                               await saveManagedContentToFirebase({
                                 projects: content.projects.items,
                                 promotions: nextPromotions,
+                                team: content.contact.team,
                               });
 
                               onContentChange({

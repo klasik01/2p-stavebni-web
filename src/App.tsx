@@ -18,6 +18,7 @@ import { initAnalytics, disableAnalytics, trackPageView } from "./utils/analytic
 import { getCookieConsent, setCookieConsent, type CookieConsentState } from "./utils/cookieConsent";
 import { getHeroProjectImages } from "./utils/projectImages";
 import {
+  ADMIN_EMPLOYEES_ROUTE,
   ADMIN_ROUTE,
   ADMIN_PROJECTS_ROUTE,
   ADMIN_PROMOTIONS_ROUTE,
@@ -36,7 +37,9 @@ function App() {
   const isAdminRoute = route.startsWith(ADMIN_ROUTE);
   const adminSection = route.startsWith(ADMIN_PROMOTIONS_ROUTE)
     ? "promotions"
-    : "projects";
+    : route.startsWith(ADMIN_EMPLOYEES_ROUTE)
+      ? "employees"
+      : "projects";
 
   const activePromotions = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
