@@ -144,7 +144,7 @@ img { display: block; max-width: 100%; }
 .navbar-logo img { height: 44px; width: auto; filter: brightness(10); }
 
 .logo-fallback {
-  display: inline-block;
+  display: none;
   font-family: var(--font-head);
   font-size: 26px;
   font-weight: 700;
@@ -1493,7 +1493,12 @@ footer {
     gap: 20px;
   }
 
-  .hero h1 { font-size: 42px; }
+  .navbar { padding: 14px 0; }
+  .navbar-logo img { height: 36px; }
+  .hero-brand { margin-bottom: 18px; }
+  .hero-brand-logo { width: 130px; }
+  .hero h1 { font-size: 36px; line-height: .96; margin-bottom: 20px; }
+  .hero-desc { font-size: 15px; line-height: 1.7; margin-bottom: 32px; max-width: 100%; }
   .hero-stats { flex-wrap: wrap; gap: 24px; }
   .services-header,
   .about-inner,

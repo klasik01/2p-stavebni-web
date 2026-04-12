@@ -1,46 +1,15 @@
-import { get, ref, set } from "firebase/database";
+import { get, onValue, ref, set, type Unsubscribe } from "firebase/database";
 import { database } from "../lib/firebase";
 import type { ManagedContent, SiteContent } from "../types/content";
 
 export const ADMIN_ROUTE = "#/admin";
 export const ADMIN_PROJECTS_ROUTE = "#/admin/projects";
 export const ADMIN_PROMOTIONS_ROUTE = "#/admin/promotions";
-export const ADMIN_CONTENT_KEY = "p-stavebni-managed-content";
 export const ADMIN_SESSION_KEY = "p-stavebni-admin-session";
 export const FIREBASE_CONTENT_PATH = "p-stavebni/content";
 
 export function loadManagedContent(baseContent: SiteContent): SiteContent {
-  if (typeof window === "undefined") return baseContent;
-
-  try {
-    const raw = window.localStorage.getItem(ADMIN_CONTENT_KEY);
-    if (!raw) return baseContent;
-
-    const parsed = JSON.parse(raw) as Partial<ManagedContent>;
-
-    return {
-      ...baseContent,
-      projects: {
-        ...baseContent.projects,
-        items: Array.isArray(parsed.projects) ? parsed.projects : baseContent.projects.items,
-      },
-      promotions: {
-        items: Array.isArray(parsed.promotions)
-          ? parsed.promotions
-          : baseContent.promotions.items,
-      },
-    };
-  } catch {
-    return baseContent;
-  }
-}
-
-export function saveManagedContent(content: ManagedContent) {
-  window.localStorage.setItem(ADMIN_CONTENT_KEY, JSON.stringify(content));
-}
-
-export function clearManagedContent() {
-  window.localStorage.removeItem(ADMIN_CONTENT_KEY);
+  return baseContent;
 }
 
 export function isAdminSessionActive() {
@@ -56,39 +25,55 @@ export function setAdminSession(active: boolean) {
   window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
 }
 
+function mergeManagedContent(baseContent: SiteContent, parsed: Partial<ManagedContent>): SiteContent {
+  return {
+    ...baseContent,
+    projects: {
+      ...baseContent.projects,
+      items: Array.isArray(parsed.projects) ? parsed.projects : baseContent.projects.items,
+    },
+    promotions: {
+      items: Array.isArray(parsed.promotions) ? parsed.promotions : baseContent.promotions.items,
+    },
+  };
+}
+
 export async function loadManagedContentFromFirebase(baseContent: SiteContent) {
   try {
     const snapshot = await get(ref(database, FIREBASE_CONTENT_PATH));
     if (!snapshot.exists()) {
-      return loadManagedContent(baseContent);
+      return baseContent;
     }
 
     const parsed = snapshot.val() as Partial<ManagedContent>;
-    const resolvedContent: SiteContent = {
-      ...baseContent,
-      projects: {
-        ...baseContent.projects,
-        items: Array.isArray(parsed.projects) ? parsed.projects : baseContent.projects.items,
-      },
-      promotions: {
-        items: Array.isArray(parsed.promotions)
-          ? parsed.promotions
-          : baseContent.promotions.items,
-      },
-    };
-
-    saveManagedContent({
-      projects: resolvedContent.projects.items,
-      promotions: resolvedContent.promotions.items,
-    });
-
-    return resolvedContent;
+    return mergeManagedContent(baseContent, parsed);
   } catch {
-    return loadManagedContent(baseContent);
+    return baseContent;
   }
 }
 
 export async function saveManagedContentToFirebase(content: ManagedContent) {
   await set(ref(database, FIREBASE_CONTENT_PATH), content);
-  saveManagedContent(content);
+}
+
+export function subscribeManagedContentFromFirebase(
+  baseContent: SiteContent,
+  onContent: (content: SiteContent) => void,
+  onError?: () => void,
+): Unsubscribe {
+  return onValue(
+    ref(database, FIREBASE_CONTENT_PATH),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onContent(baseContent);
+        return;
+      }
+
+      const parsed = snapshot.val() as Partial<ManagedContent>;
+      onContent(mergeManagedContent(baseContent, parsed));
+    },
+    () => {
+      onError?.();
+    },
+  );
 }

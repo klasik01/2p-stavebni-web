@@ -1,11 +1,10 @@
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
-import type { ManagedContent, Project, ProjectImage, Promotion, SiteContent } from "../types/content";
+import type { Project, ProjectImage, Promotion, SiteContent } from "../types/content";
 import {
   ADMIN_PROJECTS_ROUTE,
   ADMIN_PROMOTIONS_ROUTE,
-  clearManagedContent,
   saveManagedContentToFirebase,
 } from "../utils/contentStorage";
 import { normalizeProjectImages } from "../utils/projectImages";
@@ -14,7 +13,6 @@ import { Icon } from "./Icon";
 
 type AdminPageProps = {
   content: SiteContent;
-  defaultContent: SiteContent;
   onContentChange: (content: SiteContent) => void;
   currentSection: "projects" | "promotions";
 };
@@ -31,6 +29,12 @@ type ProjectEditor = {
   editorId: string;
   savedSlug: string | null;
   project: Project;
+};
+
+type PromotionEditor = {
+  editorId: string;
+  savedId: string | null;
+  promotion: Promotion;
 };
 
 function createEditorId() {
@@ -69,11 +73,8 @@ function createEmptyPromotion(): Promotion {
   };
 }
 
-function cloneManagedContent(content: SiteContent): ManagedContent {
-  return {
-    projects: content.projects.items.map(cloneProject),
-    promotions: content.promotions.items.map((promotion) => ({ ...promotion })),
-  };
+function clonePromotion(promotion: Promotion): Promotion {
+  return { ...promotion };
 }
 
 function normalizeProject(project: Project): Project {
@@ -91,8 +92,20 @@ function createProjectEditor(project: Project): ProjectEditor {
   };
 }
 
+function createPromotionEditor(promotion: Promotion): PromotionEditor {
+  return {
+    editorId: createEditorId(),
+    savedId: promotion.id,
+    promotion: clonePromotion(promotion),
+  };
+}
+
 function serializeProject(project: Project) {
   return JSON.stringify(normalizeProject(project));
+}
+
+function serializePromotion(promotion: Promotion) {
+  return JSON.stringify(promotion);
 }
 
 function getProjectStoragePaths(images: ProjectImage[]) {
@@ -123,7 +136,6 @@ function moveItem<T>(items: T[], from: number, to: number) {
 
 export function AdminPage({
   content,
-  defaultContent,
   onContentChange,
   currentSection,
 }: AdminPageProps) {
@@ -133,10 +145,10 @@ export function AdminPage({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isSavingPromotions, setIsSavingPromotions] = useState(false);
   const [savingProjectIds, setSavingProjectIds] = useState<string[]>([]);
-  const [promotionDraft, setPromotionDraft] = useState<Promotion[]>(() =>
-    cloneManagedContent(content).promotions,
+  const [savingPromotionIds, setSavingPromotionIds] = useState<string[]>([]);
+  const [promotionEditors, setPromotionEditors] = useState<PromotionEditor[]>(() =>
+    content.promotions.items.map(createPromotionEditor),
   );
   const [projectEditors, setProjectEditors] = useState<ProjectEditor[]>(() =>
     content.projects.items.map(createProjectEditor),
@@ -145,11 +157,6 @@ export function AdminPage({
   const [openPromotionId, setOpenPromotionId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [uploadingKeys, setUploadingKeys] = useState<string[]>([]);
-
-  const promotionsChanged = useMemo(
-    () => JSON.stringify(promotionDraft) !== JSON.stringify(content.promotions.items),
-    [content.promotions.items, promotionDraft],
-  );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -161,7 +168,7 @@ export function AdminPage({
   }, []);
 
   useEffect(() => {
-    setPromotionDraft(content.promotions.items.map((promotion) => ({ ...promotion })));
+    setPromotionEditors(content.promotions.items.map(createPromotionEditor));
   }, [content.promotions.items]);
 
   const requestConfirmation = (state: ConfirmState) => {
@@ -176,6 +183,12 @@ export function AdminPage({
 
   const setSavingProjectState = (editorId: string, isActive: boolean) => {
     setSavingProjectIds((current) =>
+      isActive ? [...new Set([...current, editorId])] : current.filter((item) => item !== editorId),
+    );
+  };
+
+  const setSavingPromotionState = (editorId: string, isActive: boolean) => {
+    setSavingPromotionIds((current) =>
       isActive ? [...new Set([...current, editorId])] : current.filter((item) => item !== editorId),
     );
   };
@@ -199,6 +212,30 @@ export function AdminPage({
       current.map((editor) =>
         editor.editorId === editorId
           ? { ...editor, project: normalizeProject(updater(cloneProject(editor.project))) }
+          : editor,
+      ),
+    );
+  };
+
+  const getSavedPromotion = (editor: PromotionEditor) => {
+    if (!editor.savedId) return null;
+    return content.promotions.items.find((promotion) => promotion.id === editor.savedId) ?? null;
+  };
+
+  const isPromotionDirty = (editor: PromotionEditor) => {
+    const savedPromotion = getSavedPromotion(editor);
+    if (!savedPromotion) return true;
+    return serializePromotion(editor.promotion) !== serializePromotion(savedPromotion);
+  };
+
+  const updatePromotionEditor = (
+    editorId: string,
+    updater: (promotion: Promotion) => Promotion,
+  ) => {
+    setPromotionEditors((current) =>
+      current.map((editor) =>
+        editor.editorId === editorId
+          ? { ...editor, promotion: clonePromotion(updater(clonePromotion(editor.promotion))) }
           : editor,
       ),
     );
@@ -269,7 +306,7 @@ export function AdminPage({
 
       await saveManagedContentToFirebase({
         projects: nextProjects,
-        promotions: promotionDraft,
+        promotions: content.promotions.items,
       });
 
       const removedImages = savedProject
@@ -287,7 +324,7 @@ export function AdminPage({
       onContentChange({
         ...content,
         projects: { ...content.projects, items: nextProjects },
-        promotions: { items: promotionDraft },
+        promotions: { items: content.promotions.items },
       });
 
       setProjectEditors((current) =>
@@ -312,39 +349,77 @@ export function AdminPage({
     }
   };
 
-  const savePromotions = async () => {
-    setIsSavingPromotions(true);
+  const cancelPromotionChanges = (editor: PromotionEditor) => {
+    const savedPromotion = getSavedPromotion(editor);
+    if (!savedPromotion) {
+      setPromotionEditors((current) => current.filter((item) => item.editorId !== editor.editorId));
+      setOpenPromotionId((current) => (current === editor.editorId ? null : current));
+      return;
+    }
+
+    setPromotionEditors((current) =>
+      current.map((item) =>
+        item.editorId === editor.editorId
+          ? { ...item, promotion: clonePromotion(savedPromotion) }
+          : item,
+      ),
+    );
+  };
+
+  const savePromotionChanges = async (editor: PromotionEditor) => {
+    const normalizedPromotion = clonePromotion(editor.promotion);
+
+    if (!normalizedPromotion.title.trim()) {
+      setNotice("Akce musí mít nadpis.");
+      window.setTimeout(() => setNotice(""), 3000);
+      return;
+    }
+
+    setSavingPromotionState(editor.editorId, true);
 
     try {
+      const savedPromotion = getSavedPromotion(editor);
+      const nextPromotions = [...content.promotions.items];
+      const savedIndex = savedPromotion
+        ? nextPromotions.findIndex((promotion) => promotion.id === savedPromotion.id)
+        : -1;
+
+      if (savedIndex >= 0) {
+        nextPromotions[savedIndex] = normalizedPromotion;
+      } else {
+        nextPromotions.unshift(normalizedPromotion);
+      }
+
       await saveManagedContentToFirebase({
         projects: content.projects.items,
-        promotions: promotionDraft,
+        promotions: nextPromotions,
       });
 
       onContentChange({
         ...content,
-        promotions: { items: promotionDraft },
+        promotions: { items: nextPromotions },
       });
 
-      setNotice("Akce byly uloženy do Firebase databáze.");
-      window.setTimeout(() => setNotice(""), 3000);
+      setPromotionEditors((current) =>
+        current.map((item) =>
+          item.editorId === editor.editorId
+            ? {
+                ...item,
+                savedId: normalizedPromotion.id,
+                promotion: clonePromotion(normalizedPromotion),
+              }
+            : item,
+        ),
+      );
+
+      setNotice(`Akce "${normalizedPromotion.title}" byla uložena.`);
+      window.setTimeout(() => setNotice(""), 2500);
     } catch {
-      setNotice("Uložení akcí se nepodařilo. Zkontroluj pravidla databáze.");
+      setNotice("Uložení akce se nepodařilo. Zkontroluj databázi a oprávnění.");
       window.setTimeout(() => setNotice(""), 4000);
     } finally {
-      setIsSavingPromotions(false);
+      setSavingPromotionState(editor.editorId, false);
     }
-  };
-
-  const resetPromotionsToDefault = () => {
-    clearManagedContent();
-    setPromotionDraft(defaultContent.promotions.items.map((promotion) => ({ ...promotion })));
-    onContentChange({
-      ...content,
-      promotions: { items: defaultContent.promotions.items },
-    });
-    setNotice("Akce byly vráceny na výchozí hodnoty z projektu.");
-    window.setTimeout(() => setNotice(""), 3000);
   };
 
   const toggleProject = (editorId: string) => {
@@ -478,28 +553,10 @@ export function AdminPage({
           </div>
 
           {currentSection === "promotions" ? (
-            <>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() =>
-                  requestConfirmation({
-                    title: "Uložit akce?",
-                    message: "Tímto přepíšeš obsah promo akcí ve Firebase databázi.",
-                    confirmLabel: isSavingPromotions ? "Ukládám..." : "Ano, uložit",
-                    tone: "primary",
-                    onConfirm: savePromotions,
-                  })
-                }
-                disabled={isSavingPromotions}
-              >
-                {isSavingPromotions ? "Ukládám..." : "Uložit akce"}
-                <Icon name="send" size={16} />
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={resetPromotionsToDefault}>
-                Obnovit výchozí obsah
-              </button>
-            </>
+            <p className="admin-inline-help">
+              Každá akce má vlastní změny. Po úpravě se přímo v její kartě ukáže `Uložit` a
+              `Zrušit`.
+            </p>
           ) : (
             <p className="admin-inline-help">
               Každý projekt má vlastní změny. Po úpravě se přímo v jeho kartě ukáže `Uložit` a
@@ -508,9 +565,6 @@ export function AdminPage({
           )}
 
           {notice ? <p className="admin-notice">{notice}</p> : null}
-          {currentSection === "promotions" && promotionsChanged ? (
-            <p className="admin-dirty">Máš neuložené změny v akcích.</p>
-          ) : null}
         </div>
 
         {currentSection === "projects" ? (
@@ -586,13 +640,13 @@ export function AdminPage({
                               if (editor.savedSlug) {
                                 await saveManagedContentToFirebase({
                                   projects: nextProjects,
-                                  promotions: promotionDraft,
+                                  promotions: content.promotions.items,
                                 });
 
                                 onContentChange({
                                   ...content,
                                   projects: { ...content.projects, items: nextProjects },
-                                  promotions: { items: promotionDraft },
+                                  promotions: { items: content.promotions.items },
                                 });
                               }
 
@@ -1008,8 +1062,9 @@ export function AdminPage({
                 className="btn btn-primary"
                 onClick={() => {
                   const newPromotion = createEmptyPromotion();
-                  setPromotionDraft((current) => [newPromotion, ...current]);
-                  setOpenPromotionId(newPromotion.id);
+                  const newEditor = createPromotionEditor(newPromotion);
+                  setPromotionEditors((current) => [newEditor, ...current]);
+                  setOpenPromotionId(newEditor.editorId);
                 }}
               >
                 Přidat akci
@@ -1017,13 +1072,19 @@ export function AdminPage({
             </div>
 
             <div className="admin-stack">
-              {promotionDraft.map((promotion, promotionIndex) => (
-                <article className="admin-card" key={promotion.id}>
+              {promotionEditors.map((editor, promotionIndex) => {
+                const promotion = editor.promotion;
+                const isOpen = openPromotionId === editor.editorId;
+                const isDirty = isPromotionDirty(editor);
+                const isSaving = savingPromotionIds.includes(editor.editorId);
+
+                return (
+                <article className="admin-card" key={editor.editorId}>
                   <div className="admin-card-head">
                     <button
                       type="button"
                       className="admin-card-toggle"
-                      onClick={() => togglePromotion(promotion.id)}
+                      onClick={() => togglePromotion(editor.editorId)}
                     >
                       <div>
                         <h3>{promotion.title || `Akce ${promotionIndex + 1}`}</h3>
@@ -1032,7 +1093,7 @@ export function AdminPage({
                           {promotion.startsAt || "bez začátku"} až {promotion.endsAt || "bez konce"}
                         </p>
                       </div>
-                      <span className={`admin-chevron ${openPromotionId === promotion.id ? "open" : ""}`}>
+                      <span className={`admin-chevron ${isOpen ? "open" : ""}`}>
                         <Icon name="chevron-right" size={18} />
                       </span>
                     </button>
@@ -1042,15 +1103,31 @@ export function AdminPage({
                       onClick={() =>
                         requestConfirmation({
                           title: "Odstranit akci?",
-                          message: `Akce "${promotion.title || "Bez názvu"}" bude odstraněna z administrace.`,
+                          message: `Akce "${promotion.title || "Bez názvu"}" bude odstraněna z administrace i z databáze.`,
                           confirmLabel: "Ano, odstranit",
                           tone: "danger",
-                          onConfirm: () => {
-                            setPromotionDraft((current) =>
-                              current.filter((_, index) => index !== promotionIndex),
+                          onConfirm: async () => {
+                            const nextPromotions = content.promotions.items.filter(
+                              (item) => item.id !== editor.savedId,
+                            );
+
+                            if (editor.savedId) {
+                              await saveManagedContentToFirebase({
+                                projects: content.projects.items,
+                                promotions: nextPromotions,
+                              });
+
+                              onContentChange({
+                                ...content,
+                                promotions: { items: nextPromotions },
+                              });
+                            }
+
+                            setPromotionEditors((current) =>
+                              current.filter((item) => item.editorId !== editor.editorId),
                             );
                             setOpenPromotionId((current) =>
-                              current === promotion.id ? null : current,
+                              current === editor.editorId ? null : current,
                             );
                           },
                         })
@@ -1060,7 +1137,7 @@ export function AdminPage({
                     </button>
                   </div>
 
-                  <div className={`admin-card-body ${openPromotionId === promotion.id ? "open" : ""}`}>
+                  <div className={`admin-card-body ${isOpen ? "open" : ""}`}>
                     <div className="admin-card-body-inner">
                       <div className="admin-grid">
                       <label>
@@ -1069,13 +1146,10 @@ export function AdminPage({
                           type="text"
                           value={promotion.id}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, id: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              id: event.target.value,
+                            }))
                           }
                         />
                       </label>
@@ -1085,13 +1159,10 @@ export function AdminPage({
                           type="checkbox"
                           checked={promotion.enabled}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, enabled: event.target.checked }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              enabled: event.target.checked,
+                            }))
                           }
                         />
                       </label>
@@ -1101,13 +1172,10 @@ export function AdminPage({
                           type="text"
                           value={promotion.badge}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, badge: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              badge: event.target.value,
+                            }))
                           }
                         />
                       </label>
@@ -1117,13 +1185,10 @@ export function AdminPage({
                           type="text"
                           value={promotion.title}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, title: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              title: event.target.value,
+                            }))
                           }
                         />
                       </label>
@@ -1133,13 +1198,10 @@ export function AdminPage({
                           type="date"
                           value={promotion.startsAt ?? ""}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, startsAt: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              startsAt: event.target.value,
+                            }))
                           }
                         />
                       </label>
@@ -1149,13 +1211,10 @@ export function AdminPage({
                           type="date"
                           value={promotion.endsAt ?? ""}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, endsAt: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              endsAt: event.target.value,
+                            }))
                           }
                         />
                       </label>
@@ -1164,13 +1223,10 @@ export function AdminPage({
                         <textarea
                           value={promotion.text}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, text: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              text: event.target.value,
+                            }))
                           }
                         />
                       </label>
@@ -1180,13 +1236,10 @@ export function AdminPage({
                           type="text"
                           value={promotion.ctaLabel}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, ctaLabel: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              ctaLabel: event.target.value,
+                            }))
                           }
                         />
                       </label>
@@ -1196,21 +1249,64 @@ export function AdminPage({
                           type="text"
                           value={promotion.ctaHref}
                           onChange={(event) =>
-                            setPromotionDraft((current) =>
-                              current.map((item, index) =>
-                                index === promotionIndex
-                                  ? { ...item, ctaHref: event.target.value }
-                                  : item,
-                              ),
-                            )
+                            updatePromotionEditor(editor.editorId, (current) => ({
+                              ...current,
+                              ctaHref: event.target.value,
+                            }))
                           }
                         />
                       </label>
                       </div>
+
+                      {isDirty ? (
+                        <div className="admin-project-savebar">
+                          <p className="admin-dirty">V téhle akci máš neuložené změny.</p>
+                          <div className="admin-project-save-actions">
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() =>
+                                requestConfirmation({
+                                  title: "Zrušit změny?",
+                                  message:
+                                    "Vrátí se poslední uložený stav akce a zahodí se lokální úpravy.",
+                                  confirmLabel: "Ano, zrušit změny",
+                                  tone: "danger",
+                                  onConfirm: () => cancelPromotionChanges(editor),
+                                })
+                              }
+                            >
+                              Zrušit změny
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              disabled={isSaving}
+                              onClick={() =>
+                                requestConfirmation({
+                                  title: "Uložit akci?",
+                                  message:
+                                    "Tímto uložíš tuto promo akci do Firebase databáze.",
+                                  confirmLabel: isSaving ? "Ukládám..." : "Ano, uložit akci",
+                                  tone: "primary",
+                                  onConfirm: () => savePromotionChanges(editor),
+                                })
+                              }
+                            >
+                              {isSaving ? "Ukládám..." : "Uložit akci"}
+                              <Icon name="send" size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="admin-project-savebar is-clean">
+                          <p className="admin-clean">Akce je uložená a bez lokálních změn.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </article>
-              ))}
+              )})}
             </div>
           </section>
         ) : null}

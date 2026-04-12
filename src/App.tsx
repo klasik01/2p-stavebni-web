@@ -18,12 +18,11 @@ import {
   ADMIN_ROUTE,
   ADMIN_PROJECTS_ROUTE,
   ADMIN_PROMOTIONS_ROUTE,
-  loadManagedContent,
-  loadManagedContentFromFirebase,
+  subscribeManagedContentFromFirebase,
 } from "./utils/contentStorage";
 
 function App() {
-  const [content, setContent] = useState(() => loadManagedContent(siteContent));
+  const [content, setContent] = useState(siteContent);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [route, setRoute] = useState(() => window.location.hash || "#uvod");
   const [isContentLoading, setIsContentLoading] = useState(true);
@@ -55,16 +54,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let active = true;
-
-    loadManagedContentFromFirebase(siteContent).then((resolvedContent) => {
-      if (!active) return;
-      setContent(resolvedContent);
-      setIsContentLoading(false);
-    });
+    const unsubscribe = subscribeManagedContentFromFirebase(
+      siteContent,
+      (resolvedContent) => {
+        setContent(resolvedContent);
+        setIsContentLoading(false);
+      },
+      () => {
+        setContent(siteContent);
+        setIsContentLoading(false);
+      },
+    );
 
     return () => {
-      active = false;
+      unsubscribe();
     };
   }, []);
 
@@ -109,7 +112,6 @@ function App() {
     return (
       <AdminPage
         content={content}
-        defaultContent={siteContent}
         onContentChange={setContent}
         currentSection={adminSection}
       />
@@ -121,9 +123,14 @@ function App() {
       <main className="admin-shell">
         <section className="admin-login">
           <div className="admin-login-card">
-            <span className="section-label">Načítání obsahu</span>
-            <h1>Načítám data z Firebase</h1>
-            <p>Jakmile budou data připravená, zobrazí se veřejný web i administrace.</p>
+            <img
+              src={siteContent.company.logos.color}
+              alt="2P Stavební"
+              className="hero-brand-logo"
+            />
+            <span className="section-label">Chvilka strpení</span>
+            <h1>Načítáme pro vás obsah</h1>
+            <p>Stránka se právě připravuje, za okamžik bude vše k dispozici.</p>
           </div>
         </section>
       </main>
