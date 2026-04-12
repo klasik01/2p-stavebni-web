@@ -32,8 +32,8 @@ export const siteContent: SiteContent = {
     secondaryAction: { label: "Kontaktujte nás", href: "#kontakt" },
     stats: [
       { value: 15, suffix: "+", label: "Let zkušeností" },
-      { value: 7, label: "Realizovaných projektů" },
-      { value: 6, label: "Nabízených služeb" },
+      { value: 25, label: "Realizovaných projektů" },
+      { value: 24, suffix: "/7", label: "Přehled o stavbě" },
     ],
   },
   trustBar: [
@@ -261,29 +261,6 @@ export const siteContent: SiteContent = {
     ],
   },
   promotions: {
-    items: [
-      {
-        id: "leto-zatepleni",
-        enabled: true,
-        startsAt: "2026-05-01",
-        endsAt: "2026-08-31",
-        badge: "Letní akce",
-        title: "Akce na zateplení a opravy fasád",
-        text: "Připravili jsme zvýhodněné termíny pro zateplení objektů a opravy fasád. Ozvěte se včas a rezervujte si letní realizaci.",
-        ctaLabel: "Nezávazně poptat",
-        ctaHref: "#kontakt",
-      },
-      {
-        id: "fasady-jaro",
-        enabled: true,
-        startsAt: "2026-03-01",
-        endsAt: "2026-05-31",
-        badge: "Sezónní nabídka",
-        title: "Jarní termíny pro opravy fasád",
-        text: "Pokud řešíte opravu fasády po zimě, máme otevřené kapacity pro rychlé posouzení a návrh postupu.",
-        ctaLabel: "Chci konzultaci",
-        ctaHref: "#kontakt",
-      },
-    ],
+    items: [],
   },
 };

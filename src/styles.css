@@ -651,6 +651,27 @@ img { display: block; max-width: 100%; }
 .contact-form-section { padding: 40px; }
 .contact-form-title { font-family: var(--font-head); font-size: 24px; font-weight: 600; margin-bottom: 8px; }
 .contact-form-desc { font-size: 14px; color: #666; margin-bottom: 28px; line-height: 1.6; }
+.contact-quick-actions { display: flex; flex-direction: column; gap: 14px; }
+.contact-quick-action { justify-content: center; }
+.contact-quick-note {
+  margin-top: 22px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--gray-light);
+}
+.contact-quick-note strong {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--font-head);
+  font-size: 16px;
+  text-transform: uppercase;
+  color: var(--dark);
+}
+.contact-quick-note p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #666;
+}
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-group { margin-bottom: 16px; }
 
@@ -1081,13 +1102,45 @@ footer {
   min-width: 56px;
 }
 
+.admin-card {
+  position: relative;
+  padding: 24px;
+  cursor: grab;
+  transition:
+    background .22s ease,
+    border-color .22s ease,
+    box-shadow .22s ease,
+    transform .22s ease,
+    opacity .22s ease;
+}
+
+.admin-card:active {
+  cursor: grabbing;
+}
+
 .admin-card.is-dragging {
-  opacity: .72;
+  opacity: .66;
+  transform: scale(.985);
+  box-shadow: 0 22px 52px rgba(0,0,0,.14);
+  background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(244,244,244,.92) 100%);
 }
 
 .admin-card.is-drop-target {
-  outline: 2px dashed var(--blue);
-  outline-offset: 4px;
+  border-color: rgba(30, 91, 184, .28);
+  box-shadow: 0 18px 40px rgba(30, 91, 184, .12);
+  background:
+    linear-gradient(180deg, rgba(30, 91, 184, .06) 0%, rgba(255,255,255,.94) 100%);
+}
+
+.admin-card.is-drop-target::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: -10px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--blue);
 }
 
 .admin-section-head h2,
@@ -1125,8 +1178,6 @@ footer {
 
 .admin-stack { gap: 18px; }
 .admin-stack.compact { gap: 12px; }
-
-.admin-card { padding: 24px; }
 
 .admin-card-body {
   display: grid;
@@ -1293,14 +1344,6 @@ footer {
 .admin-icon-button.is-busy {
   background: var(--dark);
   color: var(--white);
-}
-
-.admin-drag-handle {
-  cursor: grab;
-}
-
-.admin-drag-handle:active {
-  cursor: grabbing;
 }
 
 .admin-icon-button-wide {

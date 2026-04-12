@@ -1,31 +1,8 @@
-import { useState } from "react";
 import type { ContactContent } from "../types/content";
 import { Icon } from "./Icon";
 import { SectionHeading } from "./SectionHeading";
 
-function encode(data: Record<string, string>) {
-  return new URLSearchParams(data).toString();
-}
-
 export function ContactSection({ content }: { content: ContactContent }) {
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    message: "",
-    gdpr: false,
-  });
-
-  const submitLabel =
-    status === "success"
-      ? "✓ Odesláno! Brzy se ozveme."
-      : status === "submitting"
-        ? "Odesílám..."
-        : status === "error"
-          ? "Zkusit znovu"
-          : "Odeslat zprávu";
-
   return (
     <section className="contact" id="kontakt">
       <div className="container">
@@ -98,128 +75,34 @@ export function ContactSection({ content }: { content: ContactContent }) {
             </div>
           </div>
           <div className="contact-form-section reveal">
-            <h3 className="contact-form-title">Napište nám</h3>
+            <h3 className="contact-form-title">Spojme se přímo</h3>
             <p className="contact-form-desc">
-              Vyplňte formulář a ozveme se vám co nejdříve. Rádi probereme váš projekt.
+              Nejrychlejší cesta je zavolat nebo napsat email. Po kliknutí se vám rovnou otevře
+              telefon nebo emailový klient.
             </p>
-            <form
-              name="contact"
-              method="post"
-              data-netlify="true"
-              data-netlify-honeypot="bot-field"
-              onSubmit={async (event) => {
-                event.preventDefault();
-                setStatus("submitting");
-
-                try {
-                  await fetch("/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: encode({
-                      "form-name": "contact",
-                      name: formData.name,
-                      phone: formData.phone,
-                      email: formData.email,
-                      message: formData.message,
-                      gdpr: String(formData.gdpr),
-                    }),
-                  });
-
-                  setStatus("success");
-                  setFormData({
-                    name: "",
-                    phone: "",
-                    email: "",
-                    message: "",
-                    gdpr: false,
-                  });
-                } catch {
-                  setStatus("error");
-                }
-              }}
-            >
-              <input type="hidden" name="form-name" value="contact" />
-              <div hidden>
-                <input name="bot-field" onChange={() => undefined} />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="name">Jméno *</label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder="Vaše jméno"
-                    required
-                    value={formData.name}
-                    onChange={(event) =>
-                      setFormData((current) => ({ ...current, name: event.target.value }))
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">Telefon</label>
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    placeholder="+420 ..."
-                    value={formData.phone}
-                    onChange={(event) =>
-                      setFormData((current) => ({ ...current, phone: event.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="email">Email *</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="vas@email.cz"
-                  required
-                  value={formData.email}
-                  onChange={(event) =>
-                    setFormData((current) => ({ ...current, email: event.target.value }))
-                  }
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="message">Zpráva *</label>
-                <textarea
-                  id="message"
-                  name="message"
-                  placeholder="Popište váš projekt nebo dotaz..."
-                  required
-                  value={formData.message}
-                  onChange={(event) =>
-                    setFormData((current) => ({ ...current, message: event.target.value }))
-                  }
-                />
-              </div>
-              <div className="form-check">
-                <input
-                  type="checkbox"
-                  id="gdpr"
-                  name="gdpr"
-                  required
-                  checked={formData.gdpr}
-                  onChange={(event) =>
-                    setFormData((current) => ({ ...current, gdpr: event.target.checked }))
-                  }
-                />
-                <label htmlFor="gdpr">Souhlasím se zpracováním osobních údajů dle GDPR.</label>
-              </div>
-              <button
-                type="submit"
-                className={`btn btn-primary form-submit ${status === "success" ? "is-success" : ""}`}
-                disabled={status === "submitting"}
+            <div className="contact-quick-actions">
+              <a
+                href={`tel:${content.phone.replace(/\s+/g, "")}`}
+                className="btn btn-primary contact-quick-action"
               >
-                {submitLabel}
-                {status !== "success" ? <Icon name="send" size={16} /> : null}
-              </button>
-            </form>
+                <Icon name="phone" size={18} />
+                Zavolat
+              </a>
+              <a
+                href={`mailto:${content.email}`}
+                className="btn btn-outline-dark contact-quick-action"
+              >
+                <Icon name="mail" size={18} />
+                Napsat email
+              </a>
+            </div>
+            <div className="contact-quick-note">
+              <strong>Preferujete přímý kontakt?</strong>
+              <p>
+                Kliknutím na telefon okamžitě zahájíte volání. Kliknutím na email se otevře nový
+                email s připravenou adresou.
+              </p>
+            </div>
           </div>
         </div>
       </div>

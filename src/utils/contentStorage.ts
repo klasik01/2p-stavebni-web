@@ -39,7 +39,7 @@ function mergeManagedContent(baseContent: SiteContent, parsed: Partial<ManagedCo
       items: Array.isArray(parsed.projects) ? parsed.projects : baseContent.projects.items,
     },
     promotions: {
-      items: Array.isArray(parsed.promotions) ? parsed.promotions : baseContent.promotions.items,
+      items: Array.isArray(parsed.promotions) ? parsed.promotions : [],
     },
   };
 }

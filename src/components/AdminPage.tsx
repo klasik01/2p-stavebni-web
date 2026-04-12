@@ -242,6 +242,11 @@ function moveItem<T>(items: T[], from: number, to: number) {
   return copy;
 }
 
+function isInteractiveDragTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest("button, input, textarea, label, a, select"));
+}
+
 export function AdminPage({
   content,
   onContentChange,
@@ -791,6 +796,18 @@ export function AdminPage({
                       isDropTarget ? "is-drop-target" : ""
                     }`}
                     key={editor.editorId}
+                    draggable
+                    onDragStart={(event) => {
+                      if (isInteractiveDragTarget(event.target)) {
+                        event.preventDefault();
+                        return;
+                      }
+
+                      setDragProjectId(editor.editorId);
+                      setDragOverProjectId(editor.editorId);
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", editor.editorId);
+                    }}
                     onDragOver={(event) => {
                       event.preventDefault();
                       if (dragProjectId && dragProjectId !== editor.editorId) {
@@ -830,20 +847,6 @@ export function AdminPage({
                         </span>
                       </button>
                       <div className="admin-card-controls">
-                        <button
-                          type="button"
-                          className="admin-icon-button admin-drag-handle"
-                          aria-label="Přetáhnout projekt"
-                          draggable
-                          onDragStart={(event) => {
-                            setDragProjectId(editor.editorId);
-                            setDragOverProjectId(editor.editorId);
-                            event.dataTransfer.effectAllowed = "move";
-                            event.dataTransfer.setData("text/plain", editor.editorId);
-                          }}
-                        >
-                          <Icon name="menu" size={16} />
-                        </button>
                         <button
                           type="button"
                           className="admin-icon-button"
