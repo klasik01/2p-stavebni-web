@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminPage } from "./components/AdminPage";
 import { AboutSection } from "./components/AboutSection";
 import { ContactSection } from "./components/ContactSection";
+import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { DiarySection } from "./components/DiarySection";
 import { Footer } from "./components/Footer";
 import { HeroSection } from "./components/HeroSection";
@@ -13,6 +14,8 @@ import { ServicesSection } from "./components/ServicesSection";
 import { TrustBar } from "./components/TrustBar";
 import { siteContent } from "./content/siteContent";
 import type { Project } from "./types/content";
+import { initAnalytics, disableAnalytics, trackPageView } from "./utils/analytics";
+import { getCookieConsent, setCookieConsent, type CookieConsentState } from "./utils/cookieConsent";
 import { getHeroProjectImages } from "./utils/projectImages";
 import {
   ADMIN_ROUTE,
@@ -22,10 +25,14 @@ import {
 } from "./utils/contentStorage";
 
 function App() {
+  const gaMeasurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
   const [content, setContent] = useState(siteContent);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [route, setRoute] = useState(() => window.location.hash || "#uvod");
   const [isContentLoading, setIsContentLoading] = useState(true);
+  const [cookieConsent, setCookieConsentState] = useState<CookieConsentState>(() =>
+    getCookieConsent(),
+  );
   const isAdminRoute = route.startsWith(ADMIN_ROUTE);
   const adminSection = route.startsWith(ADMIN_PROMOTIONS_ROUTE)
     ? "promotions"
@@ -83,6 +90,25 @@ function App() {
 
     robots.setAttribute("content", isAdminRoute ? "noindex, nofollow" : "index, follow");
   }, [content.seo.title, isAdminRoute]);
+
+  useEffect(() => {
+    if (!gaMeasurementId) return;
+
+    if (cookieConsent === "accepted") {
+      initAnalytics(gaMeasurementId);
+      return;
+    }
+
+    disableAnalytics(gaMeasurementId);
+  }, [cookieConsent, gaMeasurementId]);
+
+  useEffect(() => {
+    if (cookieConsent !== "accepted" || !gaMeasurementId) return;
+
+    const pagePath = `${window.location.pathname}${window.location.hash || ""}`;
+    const pageTitle = isAdminRoute ? "Administrace | 2P Stavební" : content.seo.title;
+    trackPageView(gaMeasurementId, pagePath, pageTitle);
+  }, [content.seo.title, cookieConsent, gaMeasurementId, isAdminRoute, route]);
 
   useEffect(() => {
     if (isAdminRoute) return;
@@ -166,6 +192,18 @@ function App() {
         onClose={() => setSelectedProject(null)}
       />
       <PromoPopup items={activePromotions} />
+      {cookieConsent === "unset" && gaMeasurementId ? (
+        <CookieConsentBanner
+          onAccept={() => {
+            setCookieConsent("accepted");
+            setCookieConsentState("accepted");
+          }}
+          onReject={() => {
+            setCookieConsent("rejected");
+            setCookieConsentState("rejected");
+          }}
+        />
+      ) : null}
     </>
   );
 }

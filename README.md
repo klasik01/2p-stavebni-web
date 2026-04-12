@@ -40,6 +40,7 @@ VITE_FIREBASE_PROJECT_ID
 VITE_FIREBASE_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
+VITE_GA_MEASUREMENT_ID
 ```
 
 Typicky postup:
@@ -100,7 +101,14 @@ VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
+VITE_GA_MEASUREMENT_ID=G-F272R4N94Y
 ```
+
+## Cookies a Google Analytics
+
+- Analytics bezi az po potvrzeni cookies banneru
+- GA4 measurement id se bere z `VITE_GA_MEASUREMENT_ID`
+- Souhlas navstevnika se uklada do browser cookie
 
 ## Jak pridat projekt
 
