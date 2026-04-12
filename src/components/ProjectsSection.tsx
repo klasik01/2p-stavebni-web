@@ -1,4 +1,5 @@
 import type { Project, ProjectsContent } from "../types/content";
+import { getPrimaryProjectImage } from "../utils/projectImages";
 import { Icon } from "./Icon";
 import { SectionHeading } from "./SectionHeading";
 
@@ -24,8 +25,12 @@ export function ProjectsSection({ content, onProjectOpen }: ProjectsSectionProps
         </div>
         <div className="projects-grid">
           {content.items
-            .filter((project) => project.images.length > 0 && project.images[0]?.src)
-            .map((project, index) => (
+            .map((project) => ({
+              project,
+              primaryImage: getPrimaryProjectImage(project),
+            }))
+            .filter(({ primaryImage }) => Boolean(primaryImage?.src))
+            .map(({ project, primaryImage }, index) => (
             <button
               type="button"
               className={`project-card reveal ${index === 0 ? "is-featured" : ""}`}
@@ -33,8 +38,8 @@ export function ProjectsSection({ content, onProjectOpen }: ProjectsSectionProps
               onClick={() => onProjectOpen(project)}
             >
               <img
-                src={project.images[0]?.src}
-                alt={project.images[0]?.alt || project.title}
+                src={primaryImage?.src}
+                alt={primaryImage?.alt || project.title}
                 className="project-img"
                 loading="lazy"
               />

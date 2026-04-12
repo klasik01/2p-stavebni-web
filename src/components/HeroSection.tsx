@@ -70,6 +70,15 @@ export function HeroSection({ content }: HeroSectionProps) {
       <div className="hero-accent" />
       <div className="container">
         <div className="hero-content">
+          {content.brandLogo ? (
+            <div className="hero-brand">
+              <img
+                src={content.brandLogo}
+                alt="2P Stavební logo"
+                className="hero-brand-logo"
+              />
+            </div>
+          ) : null}
           <div className="hero-eyebrow">
             <div className="hero-eyebrow-line" />
             <span>{content.eyebrow}</span>

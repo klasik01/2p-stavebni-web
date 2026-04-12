@@ -126,7 +126,11 @@ function App() {
 
   return (
     <>
-      <Navbar companyName={content.company.name} navigation={content.navigation} />
+      <Navbar
+        companyName={content.company.name}
+        logo={content.company.logos.light}
+        navigation={content.navigation}
+      />
       <main>
         <HeroSection content={content.hero} />
         <TrustBar items={content.trustBar} />
@@ -139,7 +143,11 @@ function App() {
         <DiarySection content={content.diary} />
         <ContactSection content={content.contact} />
       </main>
-      <Footer content={content.footer} navigation={content.navigation} />
+      <Footer
+        content={content.footer}
+        navigation={content.navigation}
+        logo={content.company.logos.light}
+      />
       <ProjectModal
         project={selectedProject}
         onClose={() => setSelectedProject(null)}

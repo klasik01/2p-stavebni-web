@@ -56,6 +56,20 @@ export function Icon({ name, size = 24, strokeWidth = 2, filled = false }: IconP
       return <svg {...common}><polyline points="15 18 9 12 15 6" /></svg>;
     case "chevron-right":
       return <svg {...common}><polyline points="9 18 15 12 9 6" /></svg>;
+    case "chevron-up":
+      return <svg {...common}><polyline points="18 15 12 9 6 15" /></svg>;
+    case "chevron-down":
+      return <svg {...common}><polyline points="6 9 12 15 18 9" /></svg>;
+    case "eye":
+      return <svg {...common}><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>;
+    case "eye-off":
+      return <svg {...common}><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19C5 19 1 12 1 12a21.78 21.78 0 0 1 5.06-5.94M9.9 4.24A10.93 10.93 0 0 1 12 5c7 0 11 7 11 7a21.66 21.66 0 0 1-2.16 3.19M1 1l22 22" /><path d="M14.12 14.12A3 3 0 0 1 9.88 9.88" /></svg>;
+    case "star":
+      return <svg {...common}><path d="m12 3 2.9 5.88 6.49.94-4.7 4.58 1.11 6.47L12 17.77 6.2 20.87l1.11-6.47-4.7-4.58 6.49-.94z" /></svg>;
+    case "trash":
+      return <svg {...common}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></svg>;
+    case "upload":
+      return <svg {...common}><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" /><path d="M8 20h8" /></svg>;
     case "scroll":
       return <svg {...common}><path d="M7 13l5 5 5-5M7 6l5 5 5-5" /></svg>;
     default:

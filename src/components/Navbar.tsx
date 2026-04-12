@@ -4,10 +4,11 @@ import { Icon } from "./Icon";
 
 type NavbarProps = {
   companyName: string;
+  logo: string;
   navigation: NavItem[];
 };
 
-export function Navbar({ companyName, navigation }: NavbarProps) {
+export function Navbar({ companyName, logo, navigation }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -24,7 +25,7 @@ export function Navbar({ companyName, navigation }: NavbarProps) {
         <div className="navbar-inner">
           <a href="#uvod" className="navbar-logo" onClick={() => setIsOpen(false)}>
             <img
-              src="https://2pstavebni.cz/assets/images/logo.png"
+              src={logo}
               alt={companyName}
               onError={(event) => {
                 (event.currentTarget as HTMLImageElement).style.display = "none";

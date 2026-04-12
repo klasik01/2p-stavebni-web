@@ -4,16 +4,17 @@ import { Icon } from "./Icon";
 type FooterProps = {
   content: FooterContent;
   navigation: NavItem[];
+  logo: string;
 };
 
-export function Footer({ content, navigation }: FooterProps) {
+export function Footer({ content, navigation, logo }: FooterProps) {
   return (
     <footer>
       <div className="container">
         <div className="footer-top">
           <div className="footer-brand">
             <img
-              src="https://2pstavebni.cz/assets/images/logo.png"
+              src={logo}
               alt="2P Stavební"
               onError={(event) => {
                 (event.currentTarget as HTMLImageElement).style.display = "none";

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Project } from "../types/content";
+import { getVisibleProjectImages } from "../utils/projectImages";
 import { Icon } from "./Icon";
 
 type ProjectModalProps = {
@@ -9,6 +10,7 @@ type ProjectModalProps = {
 
 export function ProjectModal({ project, onClose }: ProjectModalProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const visibleImages = project ? getVisibleProjectImages(project) : [];
 
   useEffect(() => {
     setActiveIndex(0);
@@ -20,10 +22,10 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowRight") {
-        setActiveIndex((current) => (current + 1) % project.images.length);
+        setActiveIndex((current) => (current + 1) % visibleImages.length);
       }
       if (event.key === "ArrowLeft") {
-        setActiveIndex((current) => (current - 1 + project.images.length) % project.images.length);
+        setActiveIndex((current) => (current - 1 + visibleImages.length) % visibleImages.length);
       }
     };
 
@@ -33,15 +35,15 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [onClose, project]);
+  }, [onClose, project, visibleImages.length]);
 
   if (!project) return null;
 
-  if (project.images.length === 0 || !project.images[activeIndex]) {
+  if (visibleImages.length === 0 || !visibleImages[activeIndex]) {
     return null;
   }
 
-  const activeImage = project.images[activeIndex];
+  const activeImage = visibleImages[activeIndex];
 
   return (
     <div className="modal-backdrop open" onClick={onClose}>
@@ -55,13 +57,13 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
             alt={activeImage.alt || project.title}
             className="project-modal-image"
           />
-          {project.images.length > 1 ? (
+          {visibleImages.length > 1 ? (
             <>
               <button
                 type="button"
                 className="modal-nav prev"
                 onClick={() =>
-                  setActiveIndex((current) => (current - 1 + project.images.length) % project.images.length)
+                  setActiveIndex((current) => (current - 1 + visibleImages.length) % visibleImages.length)
                 }
                 aria-label="Předchozí fotografie"
               >
@@ -70,7 +72,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
               <button
                 type="button"
                 className="modal-nav next"
-                onClick={() => setActiveIndex((current) => (current + 1) % project.images.length)}
+                onClick={() => setActiveIndex((current) => (current + 1) % visibleImages.length)}
                 aria-label="Další fotografie"
               >
                 <Icon name="chevron-right" size={24} />
@@ -84,7 +86,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
           {project.location ? <p className="project-modal-location">{project.location}</p> : null}
           <p className="project-modal-summary">{project.summary}</p>
           <div className="project-thumbs">
-            {project.images.map((image, index) => (
+            {visibleImages.map((image, index) => (
               <button
                 type="button"
                 className={`project-thumb ${index === activeIndex ? "active" : ""}`}

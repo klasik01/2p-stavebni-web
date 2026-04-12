@@ -16,6 +16,7 @@ export type HeroContent = {
   titleAccent: string;
   description: string;
   backgroundImage: string;
+  brandLogo?: string;
   primaryAction: NavItem;
   secondaryAction: NavItem;
   stats: Stat[];
@@ -56,6 +57,8 @@ export type ProjectImage = {
   src: string;
   alt?: string;
   storagePath?: string;
+  hidden?: boolean;
+  isPrimary?: boolean;
 };
 
 export type Project = {
@@ -132,7 +135,10 @@ export type SiteContent = {
   };
   company: {
     name: string;
-    logo: string;
+    logos: {
+      light: string;
+      color: string;
+    };
   };
   navigation: NavItem[];
   hero: HeroContent;
