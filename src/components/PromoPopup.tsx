@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n";
 import type { Promotion } from "../types/content";
 import { Icon } from "./Icon";
 
@@ -26,7 +27,7 @@ export function PromoPopup({ items }: { items: Promotion[] }) {
       <button
         type="button"
         className="promo-close"
-        aria-label="Zavřít akci"
+        aria-label={t("promo.close")}
         onClick={() => {
           window.localStorage.setItem(`promo-dismissed:${activePromotion.id}`, "true");
           setIsOpen(false);

@@ -1,4 +1,5 @@
 import type { AboutContent } from "../types/content";
+import { t } from "../i18n";
 import { Icon } from "./Icon";
 import { SectionHeading } from "./SectionHeading";
 
@@ -8,8 +9,8 @@ export function AboutSection({ content }: { content: AboutContent }) {
       <div className="container">
         <div className="about-inner">
           <div className="about-visual reveal">
-            <img src={content.mainImage} alt="2P Stavební – realizace staveb" className="about-img-main" />
-            <img src={content.accentImage} alt="Nástavba školy Košetice" className="about-img-accent" />
+            <img src={content.mainImage} alt={t("about.mainImageAlt")} className="about-img-main" />
+            <img src={content.accentImage} alt={t("about.accentImageAlt")} className="about-img-accent" />
             <div className="about-badge">
               <div className="about-badge-num">{content.badgeValue}</div>
               <div className="about-badge-text">{content.badgeText}</div>

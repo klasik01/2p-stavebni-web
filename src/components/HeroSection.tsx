@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { t } from "../i18n";
 import type { HeroContent } from "../types/content";
 import { Icon } from "./Icon";
 
@@ -101,7 +102,7 @@ export function HeroSection({ content, backgroundImages = [] }: HeroSectionProps
             <div className="hero-brand">
               <img
                 src={content.brandLogo}
-                alt="2P Stavební logo"
+                alt={t("hero.logoAlt")}
                 className="hero-brand-logo"
               />
             </div>

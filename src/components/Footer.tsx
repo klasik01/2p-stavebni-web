@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { FooterContent, NavItem } from "../types/content";
 import { Icon } from "./Icon";
 
@@ -37,20 +38,17 @@ export function Footer({ content, navigation, logo }: FooterProps) {
             </div>
           </div>
           <div className="footer-col">
-            <h4>Navigace</h4>
+            <h4>{t("footer.navigationHeading")}</h4>
             <ul className="footer-links">
               {navigation.map((item) => (
                 <li key={item.href}>
                   <a href={item.href}>{item.label}</a>
                 </li>
               ))}
-              <li>
-                <a href="#/admin/projects">Administrace</a>
-              </li>
             </ul>
           </div>
           <div className="footer-col">
-            <h4>Kontakt</h4>
+            <h4>{t("footer.contactHeading")}</h4>
             <div className="footer-contact-item">
               <Icon name="phone" size={14} />
               <a href={`tel:${content.phone.replace(/\s+/g, "")}`}>{content.phone}</a>

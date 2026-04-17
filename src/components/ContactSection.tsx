@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { ContactContent } from "../types/content";
 import { Icon } from "./Icon";
 import { SectionHeading } from "./SectionHeading";
@@ -17,7 +18,7 @@ export function ContactSection({ content }: { content: ContactContent }) {
         <div className="contact-grid">
           <div className="contact-info">
             <div className="contact-block reveal">
-              <div className="contact-block-title">Firemní údaje</div>
+              <div className="contact-block-title">{t("contact.companyInfoHeading")}</div>
               <div className="contact-line">
                 <Icon name="company" size={16} />
                 <div>
@@ -75,33 +76,27 @@ export function ContactSection({ content }: { content: ContactContent }) {
             </div>
           </div>
           <div className="contact-form-section reveal">
-            <h3 className="contact-form-title">Spojme se přímo</h3>
-            <p className="contact-form-desc">
-              Nejrychlejší cesta je zavolat nebo napsat email. Po kliknutí se vám rovnou otevře
-              telefon nebo emailový klient.
-            </p>
+            <h3 className="contact-form-title">{t("contact.directHeading")}</h3>
+            <p className="contact-form-desc">{t("contact.directIntro")}</p>
             <div className="contact-quick-actions">
               <a
                 href={`tel:${content.phone.replace(/\s+/g, "")}`}
                 className="btn btn-primary contact-quick-action"
               >
                 <Icon name="phone" size={18} />
-                Zavolat
+                {t("contact.quickCall")}
               </a>
               <a
                 href={`mailto:${content.email}`}
                 className="btn btn-outline-dark contact-quick-action"
               >
                 <Icon name="mail" size={18} />
-                Napsat email
+                {t("contact.quickEmail")}
               </a>
             </div>
             <div className="contact-quick-note">
-              <strong>Preferujete přímý kontakt?</strong>
-              <p>
-                Kliknutím na telefon okamžitě zahájíte volání. Kliknutím na email se otevře nový
-                email s připravenou adresou.
-              </p>
+              <strong>{t("contact.preferDirect")}</strong>
+              <p>{t("contact.preferDirectBody")}</p>
             </div>
           </div>
         </div>

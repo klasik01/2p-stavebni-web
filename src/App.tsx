@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { AdminPage } from "./components/AdminPage";
 import { AboutSection } from "./components/AboutSection";
 import { ContactSection } from "./components/ContactSection";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
@@ -10,36 +9,31 @@ import { Navbar } from "./components/Navbar";
 import { ProjectModal } from "./components/ProjectModal";
 import { ProjectsSection } from "./components/ProjectsSection";
 import { PromoPopup } from "./components/PromoPopup";
+import { SEOHead } from "./components/SEOHead";
 import { ServicesSection } from "./components/ServicesSection";
 import { TrustBar } from "./components/TrustBar";
-import { siteContent } from "./content/siteContent";
+import { siteContent } from "./data";
+import { contentFacade } from "./services/content";
 import type { Project } from "./types/content";
 import { initAnalytics, disableAnalytics, trackPageView } from "./utils/analytics";
-import { getCookieConsent, setCookieConsent, type CookieConsentState } from "./utils/cookieConsent";
-import { getHeroProjectImages } from "./utils/projectImages";
 import {
-  ADMIN_EMPLOYEES_ROUTE,
-  ADMIN_ROUTE,
-  ADMIN_PROJECTS_ROUTE,
-  ADMIN_PROMOTIONS_ROUTE,
-  subscribeManagedContentFromFirebase,
-} from "./utils/contentStorage";
+  getCookieConsent,
+  setCookieConsent,
+  type CookieConsentState,
+} from "./utils/cookieConsent";
+import { getHeroProjectImages } from "./utils/projectImages";
+import { ROUTES } from "./config/routes";
+import { t } from "./i18n";
 
 function App() {
   const gaMeasurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
   const [content, setContent] = useState(siteContent);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [route, setRoute] = useState(() => window.location.hash || "#uvod");
+  const [route, setRoute] = useState(() => window.location.hash || ROUTES.home);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [cookieConsent, setCookieConsentState] = useState<CookieConsentState>(() =>
     getCookieConsent(),
   );
-  const isAdminRoute = route.startsWith(ADMIN_ROUTE);
-  const adminSection = route.startsWith(ADMIN_PROMOTIONS_ROUTE)
-    ? "promotions"
-    : route.startsWith(ADMIN_EMPLOYEES_ROUTE)
-      ? "employees"
-      : "projects";
 
   const activePromotions = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -58,13 +52,13 @@ function App() {
   );
 
   useEffect(() => {
-    const onHashChange = () => setRoute(window.location.hash || "#uvod");
+    const onHashChange = () => setRoute(window.location.hash || ROUTES.home);
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   useEffect(() => {
-    const unsubscribe = subscribeManagedContentFromFirebase(
+    const unsubscribe = contentFacade.subscribe(
       siteContent,
       (resolvedContent) => {
         setContent(resolvedContent);
@@ -82,19 +76,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    document.title = isAdminRoute ? "Administrace | 2P Stavební" : content.seo.title;
-
-    let robots = document.querySelector('meta[name="robots"]');
-    if (!robots) {
-      robots = document.createElement("meta");
-      robots.setAttribute("name", "robots");
-      document.head.appendChild(robots);
-    }
-
-    robots.setAttribute("content", isAdminRoute ? "noindex, nofollow" : "index, follow");
-  }, [content.seo.title, isAdminRoute]);
-
-  useEffect(() => {
     if (!gaMeasurementId) return;
 
     if (cookieConsent === "accepted") {
@@ -109,13 +90,10 @@ function App() {
     if (cookieConsent !== "accepted" || !gaMeasurementId) return;
 
     const pagePath = `${window.location.pathname}${window.location.hash || ""}`;
-    const pageTitle = isAdminRoute ? "Administrace | 2P Stavební" : content.seo.title;
-    trackPageView(gaMeasurementId, pagePath, pageTitle);
-  }, [content.seo.title, cookieConsent, gaMeasurementId, isAdminRoute, route]);
+    trackPageView(gaMeasurementId, pagePath, document.title);
+  }, [cookieConsent, gaMeasurementId, route]);
 
   useEffect(() => {
-    if (isAdminRoute) return;
-
     const reveals = document.querySelectorAll<HTMLElement>(".reveal");
 
     const observer = new IntersectionObserver(
@@ -135,39 +113,33 @@ function App() {
 
     reveals.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, [content, isAdminRoute]);
-
-  if (isAdminRoute) {
-    return (
-      <AdminPage
-        content={content}
-        onContentChange={setContent}
-        currentSection={adminSection}
-      />
-    );
-  }
+  }, [content]);
 
   if (isContentLoading) {
     return (
-      <main className="admin-shell">
-        <section className="admin-login">
-          <div className="admin-login-card">
-            <img
-              src={siteContent.company.logos.color}
-              alt="2P Stavební"
-              className="hero-brand-logo"
-            />
-            <span className="section-label">Chvilka strpení</span>
-            <h1>Načítáme pro vás obsah</h1>
-            <p>Stránka se právě připravuje, za okamžik bude vše k dispozici.</p>
-          </div>
-        </section>
-      </main>
+      <>
+        <SEOHead pageId="home" />
+        <main className="loading-shell">
+          <section className="loading-state">
+            <div className="loading-card">
+              <img
+                src={siteContent.company.logos.color}
+                alt={siteContent.company.name}
+                className="hero-brand-logo"
+              />
+              <span className="section-label">{t("loading.eyebrow")}</span>
+              <h1>{t("loading.title")}</h1>
+              <p>{t("loading.description")}</p>
+            </div>
+          </section>
+        </main>
+      </>
     );
   }
 
   return (
     <>
+      <SEOHead pageId="home" />
       <Navbar
         companyName={content.company.name}
         logo={content.company.logos.light}

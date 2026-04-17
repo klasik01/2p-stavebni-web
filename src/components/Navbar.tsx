@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n";
 import type { NavItem } from "../types/content";
 import { Icon } from "./Icon";
 
@@ -34,7 +35,7 @@ export function Navbar({ companyName, logo, navigation }: NavbarProps) {
               }}
             />
             <span className="logo-fallback">
-              2P <span>STAVEBNÍ</span>
+              {t("brand.short")} <span>{t("brand.suffix")}</span>
             </span>
           </a>
           <ul className={`navbar-nav ${isOpen ? "open" : ""}`} id="nav-menu">
@@ -53,7 +54,7 @@ export function Navbar({ companyName, logo, navigation }: NavbarProps) {
           <button
             className="hamburger"
             type="button"
-            aria-label="Menu"
+            aria-label={t("nav.menuAria")}
             aria-expanded={isOpen}
             onClick={() => setIsOpen((current) => !current)}
           >

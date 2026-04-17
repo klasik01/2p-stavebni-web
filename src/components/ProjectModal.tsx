@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n";
 import type { Project } from "../types/content";
 import { getVisibleProjectImages } from "../utils/projectImages";
 import { Icon } from "./Icon";
@@ -48,7 +49,12 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
   return (
     <div className="modal-backdrop open" onClick={onClose}>
       <div className="project-modal" onClick={(event) => event.stopPropagation()}>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Zavřít detail projektu">
+        <button
+          type="button"
+          className="modal-close"
+          onClick={onClose}
+          aria-label={t("modal.close")}
+        >
           <Icon name="close" size={24} />
         </button>
         <div className="project-modal-media">
@@ -65,7 +71,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
                 onClick={() =>
                   setActiveIndex((current) => (current - 1 + visibleImages.length) % visibleImages.length)
                 }
-                aria-label="Předchozí fotografie"
+                aria-label={t("modal.prev")}
               >
                 <Icon name="chevron-left" size={24} />
               </button>
@@ -73,7 +79,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
                 type="button"
                 className="modal-nav next"
                 onClick={() => setActiveIndex((current) => (current + 1) % visibleImages.length)}
-                aria-label="Další fotografie"
+                aria-label={t("modal.next")}
               >
                 <Icon name="chevron-right" size={24} />
               </button>
