@@ -82,3 +82,21 @@
   color: var(--white);
   cursor: pointer;
 }
+
+/* Scroll-spy active state on nav links. */
+.navbar-nav a.active {
+  color: var(--white);
+}
+
+.navbar-nav a.active::after {
+  width: 100%;
+}
+
+/* CTA button stays visually distinct even when active. */
+.navbar-nav a.navbar-cta.active {
+  background: var(--red-dark);
+}
+
+.navbar-nav a.navbar-cta.active::after {
+  display: none;
+}

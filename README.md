@@ -1,149 +1,88 @@
-# 2P Stavebni FE
+# 2P Stavební – frontend
 
-Frontend je postaveny na `React + TypeScript + Vite` a pripraveny pro deploy na GitHub Pages.
+React + TypeScript + Vite. Public web firmy 2P Stavební s.r.o.
 
-## Spusteni
+## Lokální vývoj
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
 
-Pro lokalni beh si vytvor `.env` podle `.env.example`.
+`.env` nastav podle `.env.example` – všechny klíče jsou `VITE_*` a injektují
+se do klienta.
 
 ## Build
 
 ```bash
-npm run build
+npm run build     # tsc --noEmit + vite build → dist/
+npm run preview   # lokální preview dist/ verze
 ```
 
-## GitHub Pages pipeline
+## Architektura
 
-Workflow je pripraveny v `.github/workflows/deploy-pages.yml`.
-
-- Kazdy `push` a `pull request` spusti kontrolni build
-- Deploy na GitHub Pages probehne automaticky po pushi do vetve `main`
-- Repo je nastavene pro `https://github.com/klasik01/2p-stavebni-web`
-
-Pro zprovozneni na GitHubu je potreba:
-
-1. V repozitari otevrit `Settings > Pages`
-2. V sekci `Build and deployment` nechat `Source: GitHub Actions`
-3. V `Settings > Secrets and variables > Actions` pridat tyto secrets:
-4. Pushnout zmeny do vetve `main`
-
-```text
-VITE_FIREBASE_API_KEY
-VITE_FIREBASE_AUTH_DOMAIN
-VITE_FIREBASE_DATABASE_URL
-VITE_FIREBASE_PROJECT_ID
-VITE_FIREBASE_STORAGE_BUCKET
-VITE_FIREBASE_MESSAGING_SENDER_ID
-VITE_FIREBASE_APP_ID
-VITE_GA_MEASUREMENT_ID
+```
+src/
+  components/        14 React komponent (žádná zná Firebase)
+  data/              Per-page & shared data (company, contacts, legal, …)
+    pages/home/*     Obsah jednotlivých sekcí
+    seo/             Per-page SEO, FAQ, JSON-LD
+  services/content/  Fasáda pro BE – provider pattern
+    providers/firebase/   Jediná Firebase implementace
+  lib/firebase.ts    Firebase SDK init (používá jen provider)
+  i18n/              Minimalistický t(key) – cs výchozí
+  styles/            Tokens / base / blocks / responsive
+  config/routes.ts   Hash routy
 ```
 
-Typicky postup:
+Firebase tahá pouze live data (projekty, promoce, tým). Zbytek je statický.
+Viz `src/services/content/providers/firebase/index.ts` pro přesný kontrakt.
 
-```bash
-git add .
-git commit -m "Initial frontend app"
-git push -u origin main
-```
+## Deploy
 
-## Kde se co edituje
+Projekt je připravený pro **dva nezávislé deploy targety**:
 
-- Hlavni obsah webu: `src/content/siteContent.ts`
-- Navigace, hero, sluzby, o nas, kontakt, footer: `src/content/siteContent.ts`
-- Projekty a galerie: `src/content/siteContent.ts` v sekci `projects.items`
-- Popup akce: `src/content/siteContent.ts` v sekci `promotions.items`
-- Vzhled a layout: `src/styles.css`
-- Komponenty: `src/components/`
+### 🌐 Netlify (produkční – `2pstavebni.cz`)
 
-## Admin stranka
+Netlify staví automaticky z `main` větve:
 
-- Admin je dostupny na `#/admin`
-- Docasne prihlaseni je `admin / admin`
-- Admin stranka nastavuje `noindex, nofollow`
-- Projekty a promo akce se z administrace ukladaji do Firebase Realtime Database
-- `localStorage` slouzi jen jako zalozni fallback posledniho nacteneho obsahu
+- `netlify.toml` definuje build, SPA redirect, cache headers, security headers
+- `DEPLOY_TARGET=netlify` → `vite.config.ts` použije root base path `/`
+- V Netlify UI nastav **Environment variables** stejně jako v `.env.example`
+  (plus `VITE_GA_MEASUREMENT_ID`)
 
-Obsah je tim padem sdileny mezi zarizenimi, ale prihlaseni je zatim stale docasne resene jako `admin / admin`.
+### 🐙 GitHub Pages (preview)
 
-Realtime Database obsah se uklada do:
+Workflow `.github/workflows/deploy-pages.yml` deployuje na každý push do `main`:
 
-```text
-p-stavebni/content
-```
+- `DEPLOY_TARGET=github-pages` → vite base `/2p-stavebni-web/`
+- `public/404.html` slouží jako SPA fallback (pro deep linky bez hash)
+- V **Repo → Settings → Pages** vyber zdroj „GitHub Actions"
+- V **Repo → Settings → Secrets and variables → Actions** přidej všechny
+  `VITE_*` proměnné jako repo secrets (stejný seznam jako v `.env.example`)
 
-Pomocne lokalni klice v prohlizeci jsou:
+### ✅ CI (PR checks)
 
-```text
-p-stavebni-managed-content
-p-stavebni-admin-session
-```
+`.github/workflows/ci.yml` běží na každý PR i non-main push:
 
-## Firebase config
+- typecheck (`tsc --noEmit`)
+- produkční build (`npm run build`)
 
-Firebase konfigurace uz neni natvrdo v kodu. Aplikace ji bere z `VITE_` env promennych:
+## Správa obsahu (Firebase)
 
-```bash
-cp .env.example .env
-```
+Administrační UI je v samostatném projektu. Web zde je read-only vůči
+Realtime Database. Čtou se dvě cesty:
 
-a potom do `.env` dopln:
+| Cesta | Co obsahuje | Kam jde |
+|---|---|---|
+| `p-stavebni/content` | `{ projects[], promotions[], team[] }` | Reference, PromoPopup, Kontakt-tým |
+| `p-stavebni/project-display` | `{ order[], visibility{} }` | Pořadí + skrývání projektů |
 
-```bash
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_DATABASE_URL=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
-VITE_GA_MEASUREMENT_ID=G-F272R4N94Y
-```
+Viz `src/services/content/merging.ts` pro detail merge logiky.
 
-## Cookies a Google Analytics
+## SEO & i18n
 
-- Analytics bezi az po potvrzeni cookies banneru
-- GA4 measurement id se bere z `VITE_GA_MEASUREMENT_ID`
-- Souhlas navstevnika se uklada do browser cookie
-
-## Jak pridat projekt
-
-Do `projects.items` pridejte novy objekt:
-
-```ts
-{
-  slug: "novy-projekt",
-  category: "Realizovane zakazky",
-  title: "Nazev projektu",
-  summary: "Kratky popis projektu.",
-  location: "Mesto",
-  images: [
-    { src: "https://...", alt: "Hlavni fotka" },
-    { src: "https://...", alt: "Dalsi fotka" }
-  ]
-}
-```
-
-## Jak zapnout nebo vypnout popup akci
-
-V `promotions.items` upravte:
-
-- `enabled`: zapnuto nebo vypnuto
-- `startsAt` a `endsAt`: datum zobrazeni ve formatu `YYYY-MM-DD`
-- `title`, `text`, `ctaLabel`, `ctaHref`: obsah popupu
-
-Prvni aktivni akce v poli se zobrazi jako popup.
-
-## Formular
-
-Kontaktni formular je momentalne pripraveny pro staticky frontend, ale `GitHub Pages` sam o sobe neposkytuje backend pro odesilani emailu.
-
-Pokud chces realne odesilani zprav z webu, dalsi krok bude napojeni na:
-
-- `Formspree`
-- `EmailJS`
-- vlastni API nebo serverless funkci
+- SEO: `src/data/seo/` + `SEOHead` komponenta (title/description/OG/Twitter/JSON-LD), `public/robots.txt`, `public/sitemap.xml`
+- i18n: `src/i18n/locales/cs.ts` (~30 klíčů). Přidání EN = nový `en.ts` a
+  registrace v `src/i18n/index.ts`.
