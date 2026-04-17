@@ -28,3 +28,21 @@ export function setCookieConsent(state: Exclude<CookieConsentState, "unset">) {
     "SameSite=Lax",
   ].join("; ");
 }
+
+/**
+ * Smaže consent cookie → uživateli se při dalším renderu znovu zobrazí
+ * banner (stav se vrátí na "unset"). GDPR požaduje, aby uživatel mohl
+ * souhlas kdykoli odvolat nebo upravit – tento helper je cestou, jak
+ * to pro 2P Stavební implementovat přes odkaz „Nastavení cookies"
+ * ve footeru.
+ */
+export function clearCookieConsent() {
+  if (typeof document === "undefined") return;
+
+  document.cookie = [
+    `${COOKIE_CONSENT_KEY}=`,
+    "Path=/",
+    "Max-Age=0",
+    "SameSite=Lax",
+  ].join("; ");
+}

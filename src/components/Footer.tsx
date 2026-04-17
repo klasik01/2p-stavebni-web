@@ -6,6 +6,13 @@ type FooterProps = {
   content: FooterContent;
   navigation: NavItem[];
   logo: string;
+  /**
+   * Volitelný handler pro odkaz „Nastavení cookies". Když je definovaný,
+   * Footer vyrenderuje tlačítko, které vymaže consent cookie a tím
+   * donutí App.tsx znovu zobrazit cookie banner. GDPR-friendly – uživatel
+   * může souhlas kdykoli přehodnotit.
+   */
+  onCookieReset?: () => void;
 };
 
 /**
@@ -18,7 +25,7 @@ function formatLastUpdated(iso: string): string {
   return `${Number(d)}. ${Number(m)}. ${y}`;
 }
 
-export function Footer({ content, navigation, logo }: FooterProps) {
+export function Footer({ content, navigation, logo, onCookieReset }: FooterProps) {
   return (
     <footer>
       <div className="container">
@@ -82,6 +89,15 @@ export function Footer({ content, navigation, logo }: FooterProps) {
               {formatLastUpdated(content.lastUpdated)}
             </time>
           </span>
+          {onCookieReset ? (
+            <button
+              type="button"
+              className="footer-cookie-reset"
+              onClick={onCookieReset}
+            >
+              {t("footer.cookieSettings")}
+            </button>
+          ) : null}
         </div>
       </div>
     </footer>

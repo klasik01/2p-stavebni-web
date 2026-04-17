@@ -18,6 +18,7 @@ import { contentFacade } from "./services/content";
 import type { Project } from "./types/content";
 import { initAnalytics, disableAnalytics, trackPageView } from "./utils/analytics";
 import {
+  clearCookieConsent,
   getCookieConsent,
   setCookieConsent,
   type CookieConsentState,
@@ -163,6 +164,10 @@ function App() {
         content={content.footer}
         navigation={content.navigation}
         logo={content.company.logos.light}
+        onCookieReset={() => {
+          clearCookieConsent();
+          setCookieConsentState("unset");
+        }}
       />
       <ProjectModal
         project={selectedProject}

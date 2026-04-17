@@ -78,3 +78,23 @@ footer {
   font-weight: 500;
   margin-left: 4px;
 }
+
+.footer-cookie-reset {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: rgba(255, 255, 255, .55);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition);
+}
+
+.footer-cookie-reset:hover,
+.footer-cookie-reset:focus-visible {
+  color: var(--white);
+  outline: none;
+}

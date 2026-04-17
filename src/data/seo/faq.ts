@@ -29,7 +29,7 @@ export const faq: FaqEntry[] = [
   {
     question: "Kolik stojí realizace stavby u 2P Stavební?",
     answer:
-      "Každá stavba je individuální. Cena se odvíjí od rozsahu, zvolených materiálů a technologií. Zpracujeme vám bezplatný rozpočet na míru – stačí nás kontaktovat přes formulář nebo zavolat na +420 605 075 324.",
+      "Každá stavba je individuální. Cena se odvíjí od rozsahu, zvolených materiálů a technologií. Zpracujeme vám bezplatný rozpočet na míru – stačí nás kontaktovat přes email nebo zavolat na +420 774 110 224.",
   },
   {
     question: "Jak dlouho trvá realizace rodinného domu?",

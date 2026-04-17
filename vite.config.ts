@@ -12,7 +12,7 @@ function resolveBase(): string {
   const target = process.env.DEPLOY_TARGET;
   if (target === "github-pages") return "/2p-stavebni-web/";
 
-  if (process.env.GITHUB_ACTIONS && target \!== "netlify") {
+  if (process.env.GITHUB_ACTIONS && target !== "netlify") {
     return "/2p-stavebni-web/";
   }
 
