@@ -8,6 +8,16 @@ type FooterProps = {
   logo: string;
 };
 
+/**
+ * "2026-04-17" → "17. 4. 2026" – český lidský formát. Bezprostředně
+ * čitelný a zároveň v <time datetime="…"> zachováme ISO pro strojové
+ * čtení (SEO/AEO).
+ */
+function formatLastUpdated(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${Number(d)}. ${Number(m)}. ${y}`;
+}
+
 export function Footer({ content, navigation, logo }: FooterProps) {
   return (
     <footer>
@@ -66,6 +76,12 @@ export function Footer({ content, navigation, logo }: FooterProps) {
         <div className="footer-bottom">
           <span>{content.copyright}</span>
           <span className="footer-legal">{content.legal}</span>
+          <span className="footer-updated">
+            {t("footer.updated")}{" "}
+            <time dateTime={content.lastUpdated}>
+              {formatLastUpdated(content.lastUpdated)}
+            </time>
+          </span>
         </div>
       </div>
     </footer>

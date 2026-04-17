@@ -8,8 +8,8 @@ import { registrationLine } from "../../legal";
 
 export const contact: ContactContent = {
   label: "Spojte se s námi",
-  title: "Kontaktujte",
-  titleAccent: "nás",
+  title: "Jak nás",
+  titleAccent: "kontaktovat?",
   description:
     "Potřebujete pomoc s vaší stavbou? Rádi byste využili naše služby? Spojte se s našimi odborníky, kteří vám rádi pomohou najít nejlepší řešení.",
   companyLines: companyContactLines,

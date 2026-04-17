@@ -1,13 +1,15 @@
-/**
- * FAQ entries – rendered into FAQPage JSON-LD for AEO (featured snippets,
- * voice search, AI answer engines). Can also be surfaced as a visible
- * FAQ block later without any refactor.
- */
-export type FaqEntry = {
-  question: string;
-  answer: string;
-};
+import type { FaqEntry } from "../../types/content";
 
+/**
+ * FAQ entries – vedle viditelné sekce FaqSection jsou zdrojem i pro
+ * FAQPage JSON-LD schema (AEO, featured snippets, voice search). Typ
+ * pochází ze `types/content.ts`, aby jeden zdroj pravdy pokryl i UI
+ * komponenty.
+ *
+ * Tento soubor zachová zpětnou kompatibilitu s `data/seo/index.ts` –
+ * viditelná data sekce (label, title, description) jsou v
+ * `data/pages/home/faq.ts`, které samy `items` odkazují sem.
+ */
 export const faq: FaqEntry[] = [
   {
     question: "Kde působí firma 2P Stavební?",
@@ -35,3 +37,5 @@ export const faq: FaqEntry[] = [
       "Realizace rodinného domu trvá obvykle 8–14 měsíců od zahájení výkopových prací po kolaudaci. Přesný harmonogram stanovíme po první schůzce a prohlídce projektové dokumentace.",
   },
 ];
+
+export type { FaqEntry };

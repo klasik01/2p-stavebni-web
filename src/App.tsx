@@ -3,6 +3,7 @@ import { AboutSection } from "./components/AboutSection";
 import { ContactSection } from "./components/ContactSection";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { DiarySection } from "./components/DiarySection";
+import { FaqSection } from "./components/FaqSection";
 import { Footer } from "./components/Footer";
 import { HeroSection } from "./components/HeroSection";
 import { Navbar } from "./components/Navbar";
@@ -155,6 +156,7 @@ function App() {
           onProjectOpen={setSelectedProject}
         />
         <DiarySection content={content.diary} />
+        <FaqSection content={content.faq} />
         <ContactSection content={content.contact} />
       </main>
       <Footer

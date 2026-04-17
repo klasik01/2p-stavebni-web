@@ -87,6 +87,19 @@ export type DiaryContent = {
   action: NavItem;
 };
 
+export type FaqEntry = {
+  question: string;
+  answer: string;
+};
+
+export type FaqContent = {
+  label: string;
+  title: string;
+  titleAccent: string;
+  description: string;
+  items: FaqEntry[];
+};
+
 export type TeamMember = {
   name: string;
   role: string;
@@ -115,6 +128,8 @@ export type FooterContent = {
   address: string;
   copyright: string;
   legal: string;
+  /** ISO 8601 datum poslední aktualizace webu – freshness signál pro SEO. */
+  lastUpdated: string;
   socials: { label: string; href: string; icon: string }[];
 };
 
@@ -149,6 +164,7 @@ export type SiteContent = {
   about: AboutContent;
   projects: ProjectsContent;
   diary: DiaryContent;
+  faq: FaqContent;
   contact: ContactContent;
   footer: FooterContent;
   promotions: {

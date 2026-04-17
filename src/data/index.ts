@@ -4,6 +4,7 @@ import { navigation } from "./navigation";
 import { about } from "./pages/home/about";
 import { contact } from "./pages/home/contact";
 import { diary } from "./pages/home/diary";
+import { faq } from "./pages/home/faq";
 import { footer } from "./pages/home/footer";
 import { hero } from "./pages/home/hero";
 import { projects } from "./pages/home/projects";
@@ -27,6 +28,7 @@ export const siteContent: SiteContent = {
   about,
   projects,
   diary,
+  faq,
   contact,
   footer,
   promotions: { items: promotions },

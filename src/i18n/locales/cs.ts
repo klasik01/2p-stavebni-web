@@ -31,6 +31,7 @@ export const cs: Translations = {
   // ─── Footer ──────────────────────────────────────────────────────────
   "footer.navigationHeading": "Navigace",
   "footer.contactHeading": "Kontakt",
+  "footer.updated": "Aktualizováno:",
 
   // ─── Loading ─────────────────────────────────────────────────────────
   "loading.eyebrow": "Chvilka strpení",

@@ -2,8 +2,8 @@ import type { ProjectsContent } from "../../../types/content";
 
 export const projects: ProjectsContent = {
   label: "Realizované zakázky",
-  title: "Naše",
-  titleAccent: "reference",
+  title: "Jaké máme",
+  titleAccent: "reference?",
   description:
     "Každý projekt odráží naše hodnoty – kvalitu, přesnost a spolehlivost. Přesvědčte se sami.",
   items: [

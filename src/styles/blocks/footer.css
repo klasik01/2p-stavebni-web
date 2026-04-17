@@ -65,3 +65,16 @@ footer {
 }
 
 .footer-legal { font-size: 12px; opacity: .4; }
+
+.footer-updated {
+  font-size: 12px;
+  opacity: .6;
+  font-variant-numeric: tabular-nums;
+}
+
+.footer-updated time {
+  color: var(--white);
+  opacity: .85;
+  font-weight: 500;
+  margin-left: 4px;
+}

@@ -30,7 +30,7 @@ export const pagesSeo: Record<string, PageSeo> = {
     path: "/",
     title: "2P Stavební | Realizace staveb a rekonstrukce v Pacově",
     description:
-      "Kompletní realizace pozemních staveb, rekonstrukce, výplně otvorů a požární ucpávky v Pacově. Elektronický stavební deník 24/7. Zavolejte 605 075 324.",
+      "Realizace staveb, rekonstrukce, výplně otvorů a požární ucpávky v Pacově a celém Kraji Vysočina. Elektronický stavební deník 24/7. Volejte 605 075 324.",
     ogImage: DEFAULT_OG_IMAGE,
     locale: DEFAULT_LOCALE,
     keywords: [
