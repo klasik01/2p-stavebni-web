@@ -88,8 +88,8 @@ export function SEOHead({ pageId = "home" }: SEOHeadProps) {
     setMeta("property", "og:url", url);
     setMeta("property", "og:image", page.ogImage);
     setMeta("property", "og:image:alt", page.title);
-    setMeta("property", "og:image:width", "1200");
-    setMeta("property", "og:image:height", "630");
+    setMeta("property", "og:image:width", "512");
+    setMeta("property", "og:image:height", "512");
 
     // Twitter --------------------------------------------------------------
     setMeta("name", "twitter:card", DEFAULT_TWITTER_CARD);

@@ -7,10 +7,10 @@ export const SITE_URL = "https://2pstavebni.cz";
 export const SITE_AUTHOR = "2P Stavební s.r.o.";
 
 /** Default OG image (must be absolute). ≥ 1200×630 recommended. */
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/assets/images/projects/6/1.jpg`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/assets/images/logo-01.png`;
 
 /** Default Twitter card type. */
-export const DEFAULT_TWITTER_CARD = "summary_large_image";
+export const DEFAULT_TWITTER_CARD = "summary";
 
 /** Locale of the default language. */
 export const DEFAULT_LOCALE = "cs_CZ";
