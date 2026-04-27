@@ -127,14 +127,6 @@ export function HeroSection({ content, backgroundImages = [] }: HeroSectionProps
               {content.secondaryAction.label}
             </a>
           </div>
-          <div className="hero-stats">
-            {content.stats.map((stat) => (
-              <div key={stat.label}>
-                <Counter value={stat.value} suffix={stat.suffix} />
-                <div className="hero-stat-label">{stat.label}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
       <div className="hero-scroll">
